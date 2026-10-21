@@ -1,3 +1,4 @@
+import { T } from "../shared/i18n";
 import { BLOCKS, blockLessons } from "../shared/lessons";
 import { blockStatus, isRecommended, mastery } from "../shared/stats";
 import { blitzBest } from "../shared/tests";
@@ -17,9 +18,9 @@ function Row({ l }: { l: Lesson }) {
         {done ? "✓ " : ""}{l.title}
       </button>
       <span className="muted small">
-        {isRecommended(p, l) && <span className="tag">рекомендуем</span>}
+        {isRecommended(p, l) && <span className="tag">{T.map.recommended}</span>}
         {done ? `${done.score}/${done.total}` : l.level}
-        {m !== undefined && <span className="meter" title={`Освоенность темы ${Math.round(m * 100)}%`}><span style={{ width: `${m * 100}%` }} /></span>}
+        {m !== undefined && <span className="meter" title={T.map.mastery(Math.round(m * 100))}><span style={{ width: `${m * 100}%` }} /></span>}
       </span>
     </li>
   );
@@ -29,28 +30,28 @@ export function MapScreen() {
   const { progress: p, go } = useApp();
   return (
     <>
-      <h1>Уроки</h1>
+      <h1>{T.map.title}</h1>
       {BLOCKS.map((b) => {
         const s = blockStatus(p, b);
         return (
           <section key={b.id} className="block">
             <h2 className="block-head">
               <span>{b.title} <span className="muted small">{b.level}</span></span>
-              <span className="muted small">{s.done} из {s.total}</span>
+              <span className="muted small">{T.map.of(s.done, s.total)}</span>
             </h2>
             <ul className="lessons">
               {blockLessons(b).map((l) => <Row key={l.id} l={l} />)}
               <li className="final-row">
-                <button className="link" onClick={() => go({ name: "final", blockId: b.id })}>Финал блока</button>
+                <button className="link" onClick={() => go({ name: "final", blockId: b.id })}>{T.map.final}</button>
                 <span className="small">
                   <button className="link" onClick={() => go({ name: "test", kind: "block", blockId: b.id })}>
-                    Контрольная{s.passed && <span className="mark">✓</span>}
+                    {T.map.control}{s.passed && <span className="mark">✓</span>}
                   </button>
                   <button className="link" onClick={() => go({ name: "test", kind: "traps", blockId: b.id })}>
-                    Ловушки{bestOf(p, "traps", b.id) >= BLOCK_PASS_RATIO && <span className="mark">✓</span>}
+                    {T.map.traps}{bestOf(p, "traps", b.id) >= BLOCK_PASS_RATIO && <span className="mark">✓</span>}
                   </button>
                   <button className="link" onClick={() => go({ name: "blitz", blockId: b.id })}>
-                    Блиц{blitzBest(p, b.id) && <span className="gilt"> {blitzBest(p, b.id)!.correct}/{blitzBest(p, b.id)!.total}</span>}
+                    {T.map.blitz}{blitzBest(p, b.id) && <span className="gilt"> {blitzBest(p, b.id)!.correct}/{blitzBest(p, b.id)!.total}</span>}
                   </button>
                 </span>
               </li>

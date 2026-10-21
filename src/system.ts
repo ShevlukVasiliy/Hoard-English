@@ -1,3 +1,4 @@
+import { T } from "../shared/i18n";
 import { inTauri } from "./storage";
 import { invoke } from "@tauri-apps/api/core";
 import { cleanWords } from "../shared/anki";
@@ -27,19 +28,19 @@ type Profile = { name: string; path: string };
 async function collectionPath(s: Settings): Promise<string> {
   if (s.ankiPath) return s.ankiPath;
   const profiles = await invoke<Profile[]>("anki_profiles");
-  if (!profiles.length) throw new Error("не найдено ни одного профиля Anki");
+  if (!profiles.length) throw new Error(T.anki.notFound);
   return profiles[0]!.path;
 }
 
 export async function syncAnki(s: Settings): Promise<WordsSnapshot> {
-  if (!inTauri) throw new Error("чтение Anki доступно только в приложении на Mac");
+  if (!inTauri) throw new Error(T.anki.desktopOnly);
   const path = await collectionPath(s);
   const raw = await invoke<AnkiWord[]>("anki_words", { path, deck: s.ankiDeck });
   return { syncedAt: new Date().toISOString(), deck: s.ankiDeck, words: cleanWords(raw) };
 }
 
 export async function addToAnki(deck: string, item: Pick<AnkiQueueItem, "front" | "back">): Promise<void> {
-  if (!inTauri) throw new Error("AnkiConnect доступен только в приложении");
+  if (!inTauri) throw new Error(T.anki.connectOnly);
   await invoke("anki_add_note", { deck, front: item.front, back: item.back });
 }
 
@@ -58,3 +59,6 @@ export async function flushQueue(deck: string, queue: AnkiQueueItem[]): Promise<
   }
   return sent;
 }
+
+// Язык меню приложения и трея (src-tauri/src/i18n.rs).
+export const setMenuLang = (lang: string) => invoke("set_lang", { lang });

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { T } from "../shared/i18n";
 import { blockOf, BLOCKS, LESSONS } from "../shared/lessons";
 import { ERA_INFO } from "../shared/lessons/story-meta";
 import { ERAS } from "../shared/types";
@@ -19,18 +20,16 @@ export function StoriesScreen() {
 
   return (
     <>
-      <h1>История языка</h1>
-      <p className="muted">
-        Почему английский устроен так, а не иначе. История открывается, когда проходишь её урок. Открыто {open.length} из {withStory.length}.
-      </p>
+      <h1>{T.stories.title}</h1>
+      <p className="muted">{T.stories.intro(open.length, withStory.length)}</p>
       {notSent.length > 0 && (
         <div className="row">
-          <button className="ghost small" onClick={() => sendStoriesToAnki(notSent)}>Добавить открытые истории в Anki ({notSent.length})</button>
+          <button className="ghost small" onClick={() => sendStoriesToAnki(notSent)}>{T.stories.toAnki(notSent.length)}</button>
         </div>
       )}
 
       {ERAS.map((era) => {
-        const info = ERA_INFO[era];
+        const info = { ...ERA_INFO[era], ...T.eras[era] };
         const list = withStory.filter((l) => l.story!.era === era);
         if (!list.length) return null;
         return (
@@ -50,8 +49,8 @@ export function StoriesScreen() {
                   <li key={l.id} className="closed">
                     <span className="story-link">{l.story!.title}</span>
                     <span className="muted small">
-                      Откроется после урока <button className="link" onClick={() => go({ name: "lesson", id: l.id })}>«{l.title}»</button>
-                      {blockOf(l.id) ? ` из блока «${blockOf(l.id)!.title}»` : ""}
+                      {T.stories.opensAfter} <button className="link" onClick={() => go({ name: "lesson", id: l.id })}>«{l.title}»</button>
+                      {blockOf(l.id) ? T.stories.fromBlock(blockOf(l.id)!.title) : ""}
                     </span>
                   </li>
                 ))}
@@ -77,13 +76,13 @@ export function StoryScreen({ id, focus }: { id: string; focus?: string }) {
   }, [focus]);
   if (!lesson?.story) return null;
   const story = lesson.story;
-  const info = ERA_INFO[story.era];
+  const info = T.eras[story.era];
 
   if (!storyOpen(p.stories, id)) return (
     <article>
       <h1>{story.title}</h1>
-      <p>Эта история откроется после урока «{lesson.title}».</p>
-      <button onClick={() => go({ name: "lesson", id })}>К уроку</button>
+      <p>{T.stories.locked(lesson.title)}</p>
+      <button onClick={() => go({ name: "lesson", id })}>{T.stories.toLesson}</button>
     </article>
   );
 
@@ -96,8 +95,8 @@ export function StoryScreen({ id, focus }: { id: string; focus?: string }) {
       {story.long && <DepthSwitch which="storyDepth" />}
       <StoryBody story={story} />
       <div className="row">
-        <button className="ghost" onClick={() => go({ name: "lesson", id })}>Урок «{lesson.title}»</button>
-        <button className="ghost" onClick={() => go({ name: "stories" })}>Все истории</button>
+        <button className="ghost" onClick={() => go({ name: "lesson", id })}>{T.stories.lesson(lesson.title)}</button>
+        <button className="ghost" onClick={() => go({ name: "stories" })}>{T.stories.all}</button>
       </div>
       <SelectionMenu root={root} lessonId={id} />
     </article>

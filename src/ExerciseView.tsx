@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { checkAnswer, correctAnswer } from "../shared/check";
+import { T } from "../shared/i18n";
 import type { Exercise, OrderForm } from "../shared/types";
 import { shuffle } from "../shared/random";
 import { Inline } from "./Markup";
@@ -16,9 +17,9 @@ export function ExerciseView({ ex, onDone }: Props) {
       <Body ex={ex} locked={given !== null} onSubmit={setGiven} />
       {given !== null && (
         <div className={correct ? "verdict ok" : "verdict bad"}>
-          <p>{correct ? "Верно" : <>Правильно: <strong>{correctAnswer(ex)}</strong></>}</p>
+          <p>{correct ? T.exercise.right : <>{T.exercise.correct} <strong>{correctAnswer(ex)}</strong></>}</p>
           {ex.explain && <p className="muted"><Inline text={ex.explain} /></p>}
-          <button autoFocus onClick={() => onDone(correct, given)}>Дальше</button>
+          <button autoFocus onClick={() => onDone(correct, given)}>{T.exercise.next}</button>
         </div>
       )}
     </div>
@@ -36,13 +37,13 @@ function Body({ ex, locked, onSubmit }: { ex: Exercise; locked: boolean; onSubmi
         <>
           <p className="prompt"><Inline text={ex.prompt} /></p>
           {ex.hint && <p className="muted">{ex.hint}</p>}
-          <TextAnswer locked={locked} onSubmit={onSubmit} placeholder="Что вместо ___?" />
+          <TextAnswer locked={locked} onSubmit={onSubmit} placeholder={T.exercise.gap} />
         </>
       );
     case "fix":
       return (
         <>
-          <p className="label">Исправь ошибку</p>
+          <p className="label">{T.exercise.fix}</p>
           <p className="prompt"><Inline text={ex.prompt} /></p>
           <TextAnswer locked={locked} onSubmit={onSubmit} initial={ex.prompt} />
         </>
@@ -96,17 +97,11 @@ function TextAnswer({ locked, onSubmit, initial = "", placeholder }: { locked: b
   return (
     <form className="answer" onSubmit={(e) => { e.preventDefault(); if (value.trim()) onSubmit(value); }}>
       <input autoFocus value={value} disabled={locked} placeholder={placeholder} spellCheck={false} autoCapitalize="off" autoCorrect="off" onChange={(e) => setValue(e.target.value)} />
-      {!locked && <button type="submit" disabled={!value.trim()}>Проверить</button>}
+      {!locked && <button type="submit" disabled={!value.trim()}>{T.exercise.check}</button>}
     </form>
   );
 }
 
-const ORDER_TASK: Record<OrderForm, string> = {
-  statement: "Собери утвердительное предложение",
-  question: "Собери вопрос",
-  negative: "Собери отрицание",
-  phrase: "Собери фразу",
-};
 const ORDER_END: Record<OrderForm, string> = { statement: ".", question: "?", negative: ".", phrase: "" };
 
 function Order({ ex, locked, onSubmit }: { ex: Extract<Exercise, { kind: "order" }>; locked: boolean; onSubmit: (g: string) => void }) {
@@ -128,10 +123,10 @@ function Order({ ex, locked, onSubmit }: { ex: Extract<Exercise, { kind: "order"
   }, [chosen, complete, locked, onSubmit, sentence]);
   return (
     <>
-      <p className="label">{ex.prompt ?? ORDER_TASK[ex.form]}</p>
-      <p className="prompt built" title="Клик убирает последнее слово" onClick={() => !locked && setChosen(chosen.slice(0, -1))}>
+      <p className="label">{ex.prompt ?? T.exercise.order[ex.form]}</p>
+      <p className="prompt built" title={T.exercise.removeLast} onClick={() => !locked && setChosen(chosen.slice(0, -1))}>
         <span>{sentence || "…"}</span>
-        {ORDER_END[ex.form] && <span className="built-end" aria-label="знак в конце">{ORDER_END[ex.form]}</span>}
+        {ORDER_END[ex.form] && <span className="built-end" aria-label={T.exercise.endMark}>{ORDER_END[ex.form]}</span>}
       </p>
       <div className="options words">
         {pool.map((i) => (
@@ -140,8 +135,8 @@ function Order({ ex, locked, onSubmit }: { ex: Extract<Exercise, { kind: "order"
       </div>
       {!locked && (
         <div className="row">
-          <button className="ghost" disabled={!chosen.length} onClick={() => setChosen([])}>Сбросить</button>
-          <button disabled={!complete} onClick={() => onSubmit(sentence)}>Проверить</button>
+          <button className="ghost" disabled={!chosen.length} onClick={() => setChosen([])}>{T.exercise.reset}</button>
+          <button disabled={!complete} onClick={() => onSubmit(sentence)}>{T.exercise.check}</button>
         </div>
       )}
     </>

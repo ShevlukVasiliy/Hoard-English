@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { T } from "../shared/i18n";
 import { dueReviews, recordReview } from "../shared/progress";
 import { findExercise } from "../shared/tests";
 import { useApp } from "./state";
@@ -20,24 +21,24 @@ export function ReviewScreen() {
 
   if (!items.length) return (
     <article>
-      <h1>Повторение</h1>
-      <p>Сегодня повторять нечего. Ошибки возвращаются через 1, 3, 7 и 21 день.</p>
-      <button onClick={() => go({ name: "home" })}>На главную</button>
+      <h1>{T.review.title}</h1>
+      <p>{T.review.nothing}</p>
+      <button onClick={() => go({ name: "home" })}>{T.review.toHome}</button>
     </article>
   );
 
   if (done !== null) return (
     <article>
-      <h1>Повторение</h1>
-      <p className="big">{done} из {items.length}</p>
-      <p className="muted">Верные ответы уходят на следующий интервал, ошибки — снова через день.</p>
-      <button onClick={() => go({ name: "home" })}>На главную</button>
+      <h1>{T.review.title}</h1>
+      <p className="big">{T.review.score(done, items.length)}</p>
+      <p className="muted">{T.review.after}</p>
+      <button onClick={() => go({ name: "home" })}>{T.review.toHome}</button>
     </article>
   );
 
   return (
     <article>
-      <h1>Повторение ошибок</h1>
+      <h1>{T.review.titleRun}</h1>
       <Quiz
         total={items.length}
         next={(i) => items[i] && { key: `${items[i].r.lessonId}/${items[i].r.exerciseId}`, ex: items[i].ex }}

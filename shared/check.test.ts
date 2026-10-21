@@ -50,7 +50,7 @@ test("все варианты ответов проходят, исходник 
 test("язык теории и историй зависит от уровня, ловушки по-русски", () => {
   const cyr = /[а-яё]/i;
   for (const l of LESSONS) {
-    const ru = theoryLang(l.level) === "ru";
+    const ru = theoryLang(l.level) === "native";
     const texts = [...l.theory.map((b) => b.text + (b.title ?? "")), l.subtitle, l.story?.text ?? ""];
     if (!ru) for (const t of texts) expect(cyr.test(t.replace(/«[^»]*»/g, "")), `${l.id}: ${t.slice(0, 40)}`).toBe(false);
     else expect(texts.some((t) => cyr.test(t)), l.id).toBe(true);

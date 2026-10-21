@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { T } from "../shared/i18n";
 import type { Depth, TheoryBlock } from "../shared/types";
 import { Inline, Markup } from "./Markup";
 
@@ -19,12 +20,12 @@ function Gloss({ text, index, wide }: { text: string; index: number; wide: boole
   const body = <div data-part={`why:${index}`}><Markup text={text} /></div>;
   return wide ? (
     <aside className="gloss">
-      <p className="gloss-title">Почему так?</p>
+      <p className="gloss-title">{T.lesson.why}</p>
       {body}
     </aside>
   ) : (
     <details className="gloss">
-      <summary className="gloss-title">Почему так?</summary>
+      <summary className="gloss-title">{T.lesson.why}</summary>
       {body}
     </details>
   );
@@ -52,7 +53,7 @@ export function Theory({ blocks, depth }: { blocks: TheoryBlock[]; depth: Depth 
             {depth === "long" && b.more && <div className="more"><Markup text={b.more} /></div>}
             {b.trap && (
               <aside className="trap">
-                <strong>Ловушка для русскоговорящих</strong>
+                <strong>{T.lesson.trap}</strong>
                 <Markup text={b.trap} />
               </aside>
             )}

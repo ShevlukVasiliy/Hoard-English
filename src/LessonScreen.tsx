@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { T } from "../shared/i18n";
 import { practiceSet } from "../shared/practice";
 import type { Depth, Lesson, Story } from "../shared/types";
 import { flashHighlight, SelectionMenu, useSavedPaint } from "./Highlights";
@@ -8,19 +9,19 @@ import { useApp } from "./state";
 import { Theory } from "./Theory";
 
 type Phase = "theory" | "practice" | "result";
-const STEPS: { phase: Phase; label: string }[] = [
-  { phase: "theory", label: "Теория" },
-  { phase: "practice", label: "Практика" },
-  { phase: "result", label: "История" },
+const STEPS: { phase: Phase; label: "theory" | "practice" | "story" }[] = [
+  { phase: "theory", label: "theory" },
+  { phase: "practice", label: "practice" },
+  { phase: "result", label: "story" },
 ];
 
 function Steps({ phase }: { phase: Phase }) {
   const at = STEPS.findIndex((s) => s.phase === phase);
   return (
-    <ol className="steps" aria-label="Шаги урока">
+    <ol className="steps" aria-label={T.lesson.steps}>
       {STEPS.map((s, i) => (
         <li key={s.phase} className={i === at ? "current" : i < at ? "done" : undefined} aria-current={i === at ? "step" : undefined}>
-          {s.label}
+          {T.lesson[s.label]}
         </li>
       ))}
     </ol>
@@ -30,9 +31,9 @@ function Steps({ phase }: { phase: Phase }) {
 // Тихий переключатель «кратко / подробно»; меняет настройку целиком.
 export function DepthSwitch({ which }: { which: "theoryDepth" | "storyDepth" }) {
   const { settings, setSettings } = useApp();
-  const opts: { v: Depth; label: string }[] = [{ v: "short", label: "Кратко" }, { v: "long", label: "Подробно" }];
+  const opts: { v: Depth; label: string }[] = [{ v: "short", label: T.lesson.short }, { v: "long", label: T.lesson.long }];
   return (
-    <div className="depth-switch" role="radiogroup" aria-label={which === "theoryDepth" ? "Подача теории" : "Длина истории"}>
+    <div className="depth-switch" role="radiogroup" aria-label={which === "theoryDepth" ? T.lesson.theoryDepth : T.lesson.storyDepth}>
       {opts.map((o) => (
         <button
           key={o.v}
@@ -71,7 +72,7 @@ export function LessonScreen({ lesson, focus }: { lesson: Lesson; focus?: string
 
   // во время практики уход с экрана подтверждается: ответы ещё не сохранены
   useEffect(() => {
-    setLeaveGuard(phase === "practice" ? "Выйти из урока? Ответы практики не сохранятся." : null);
+    setLeaveGuard(phase === "practice" ? T.lesson.leaveGuard : null);
     return () => setLeaveGuard(null);
   }, [phase, setLeaveGuard]);
 
@@ -102,8 +103,8 @@ export function LessonScreen({ lesson, focus }: { lesson: Lesson; focus?: string
           {lesson.theory.some((b) => b.more) && <DepthSwitch which="theoryDepth" />}
           <Theory blocks={lesson.theory} depth={settings.theoryDepth} />
           <div className="row">
-            <button onClick={() => { setPhase("practice"); window.scrollTo(0, 0); }}>К практике</button>
-            <span className="muted small">Выдели фрагмент, чтобы сохранить его в заметки</span>
+            <button onClick={() => { setPhase("practice"); window.scrollTo(0, 0); }}>{T.lesson.toPractice}</button>
+            <span className="muted small">{T.lesson.selectHint}</span>
           </div>
         </>
       )}
@@ -115,8 +116,8 @@ export function LessonScreen({ lesson, focus }: { lesson: Lesson; focus?: string
       {phase === "result" && (
         <>
           <section className="result">
-            <p className="big">{score} из {answers.length}</p>
-            {score < answers.length && <p className="muted">Ошибки вернутся на повторение через день.</p>}
+            <p className="big">{T.lesson.score(score, answers.length)}</p>
+            {score < answers.length && <p className="muted">{T.lesson.mistakesBack}</p>}
           </section>
           {lesson.story && (
             <section className="story">
@@ -126,9 +127,9 @@ export function LessonScreen({ lesson, focus }: { lesson: Lesson; focus?: string
             </section>
           )}
           <div className="row">
-            <button onClick={() => go({ name: "home" })}>На главную</button>
-            <button className="ghost" onClick={() => go({ name: "map" })}>К урокам</button>
-            {lesson.story && <button className="ghost" onClick={() => go({ name: "stories" })}>Все истории</button>}
+            <button onClick={() => go({ name: "home" })}>{T.lesson.toHome}</button>
+            <button className="ghost" onClick={() => go({ name: "map" })}>{T.lesson.toMap}</button>
+            {lesson.story && <button className="ghost" onClick={() => go({ name: "stories" })}>{T.lesson.allStories}</button>}
           </div>
         </>
       )}

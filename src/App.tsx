@@ -6,6 +6,7 @@ import { derive, mergeEvents, nextId, seedEvents, SHARED_SETTINGS, type EventBod
 import { newDeviceId, sync, SyncError, type SyncConfig, type WordsSnapshot } from "../shared/sync";
 import type { AnkiCache, AnkiQueueItem, HighlightsFile, Settings } from "../shared/types";
 import { DEFAULT_SETTINGS, NOTES_DECK, STORIES_DECK } from "../shared/types";
+import { detectLang, setLang, T } from "../shared/i18n";
 import { BlitzScreen } from "./BlitzScreen";
 import { FinalScreen } from "./FinalScreen";
 import { useHistory } from "./history";
@@ -21,18 +22,18 @@ import { installSelectionPaint } from "./selection";
 import { SettingsScreen } from "./SettingsScreen";
 import { Ctx, type AppState, type Route, type SyncStatus } from "./state";
 import { inTauri, loadAnki, loadHighlights, loadJournal, loadProgress, loadSettings, loadSyncConfig, saveAnki, saveHighlights, saveJournal, saveProgress, saveSettings, saveSyncConfig } from "./storage";
-import { addToAnki, flushQueue, syncAutostart } from "./system";
+import { addToAnki, flushQueue, setMenuLang, syncAutostart } from "./system";
 import { TestScreen } from "./TestScreen";
 import { useUpdateAvailable } from "./update";
 import { WordsScreen } from "./WordsScreen";
 
 // Вкладки; sub — экраны внутри вкладки, при которых она подсвечена.
-export const TABS: { route: Route; label: string; sub: Route["name"][] }[] = [
-  { route: { name: "home" }, label: "Главная", sub: ["review", "test", "blitz"] },
-  { route: { name: "map" }, label: "Уроки", sub: ["lesson", "final"] },
-  { route: { name: "stories" }, label: "История", sub: ["story"] },
-  { route: { name: "notes" }, label: "Заметки", sub: [] },
-  { route: { name: "words" }, label: "Слова", sub: [] },
+export const TABS: { route: Route; tab: keyof typeof T.tabs; sub: Route["name"][] }[] = [
+  { route: { name: "home" }, tab: "home", sub: ["review", "test", "blitz"] },
+  { route: { name: "map" }, tab: "map", sub: ["lesson", "final"] },
+  { route: { name: "stories" }, tab: "stories", sub: ["story"] },
+  { route: { name: "notes" }, tab: "notes", sub: [] },
+  { route: { name: "words" }, tab: "words", sub: [] },
 ];
 
 // В браузерном режиме стартовый экран можно задать в адресе JSON-ом: #{"name":"map"}.
@@ -77,12 +78,18 @@ export function App() {
   const anki = useMemo<AnkiCache>(() => ({ ...words, queue: derived.queue }), [words, derived.queue]);
   const highlights = useMemo<HighlightsFile>(() => ({ items: derived.highlights }), [derived.highlights]);
 
-  const fail = (what: string) => (e: unknown) => setError(`${what} не сохранён: ${e}`);
+  // язык выбирается до рендера экранов: от него зависят строки и контент уроков
+  const lang = settings.lang ?? (settings.onboarded ? "ru" : detectLang());
+  setLang(lang);
+  // меню и трей на Rust перестраиваются под язык
+  useEffect(() => { if (inTauri) setMenuLang(lang).catch(() => {}); }, [lang]);
+
+  const fail = (what: keyof typeof T.app.what) => (e: unknown) => setError(T.app.notSaved(T.app.what[what], e));
 
   const setEvents = (next: JournalEvent[]) => {
     eventsRef.current = next;
     setEventsState(next);
-    saveJournal({ events: next }).catch(fail("Журнал"));
+    saveJournal({ events: next }).catch(fail("journal"));
   };
 
   useEffect(() => {
@@ -106,7 +113,7 @@ export function App() {
       // автозапуск включается по настройке при первом запуске и не расходится с системой
       syncAutostart(s.autostart).catch(() => {});
     })()
-      .catch((e) => setError(`Не удалось прочитать данные: ${e}`))
+      .catch((e) => setError(T.app.readFailed(e)))
       .finally(() => setReady(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -114,8 +121,8 @@ export function App() {
   // производные файлы: progress.json читает фоновое напоминание, highlights.json — копия
   useEffect(() => {
     if (!ready) return;
-    saveProgress(progress).catch(fail("Прогресс"));
-    saveHighlights(highlights).catch(fail("Заметки"));
+    saveProgress(progress).catch(fail("progress"));
+    saveHighlights(highlights).catch(fail("notes"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, progress, highlights]);
 
@@ -147,7 +154,7 @@ export function App() {
   const setSyncConfig = (c: SyncConfig) => {
     syncRef.current = c;
     setSyncCfgState(c);
-    saveSyncConfig(c).catch(fail("Синхронизация"));
+    saveSyncConfig(c).catch(fail("sync"));
   };
 
   const record = (body: EventBody): JournalEvent => {
@@ -180,7 +187,7 @@ export function App() {
       // события, записанные во время синхронизации, не теряются
       const merged = mergeEvents(eventsRef.current, r.events);
       if (merged.length !== eventsRef.current.length) setEvents(merged);
-      if (r.words) { setWordsState(r.words); saveAnki({ ...r.words, queue: [] }).catch(fail("Словарь")); }
+      if (r.words) { setWordsState(r.words); saveAnki({ ...r.words, queue: [] }).catch(fail("words")); }
       const at = new Date().toISOString();
       setSyncConfig({ ...syncRef.current, gistId: r.gistId, lastSync: at });
       setSyncStatus({ state: "ok", at });
@@ -188,7 +195,7 @@ export function App() {
     } catch (e) {
       const offline = e instanceof SyncError && e.offline;
       setSyncStatus({ state: offline ? "offline" : "error", message: e instanceof Error ? e.message : String(e) });
-      if (manual && !offline) toast(`Синхронизация не удалась: ${e instanceof Error ? e.message : e}`);
+      if (manual && !offline) toast(T.app.syncFailed(e instanceof Error ? e.message : String(e)));
     } finally {
       syncing.current = false;
       if (again.current) { again.current = false; scheduleSync(1000); }
@@ -230,7 +237,7 @@ export function App() {
       return "queued";
     }
   };
-  const queuedNote = inTauri ? "Anki закрыт — добавится, когда он будет запущен" : "Добавится в Anki на Mac после синхронизации";
+  const queuedNote = inTauri ? T.app.queuedDesktop : T.app.queuedPhone;
 
   const stateRef = useRef<AppState>(null!);
   const state: AppState = {
@@ -240,11 +247,11 @@ export function App() {
       // общие настройки уходят в журнал, остальные — только на этом устройстве
       for (const k of SHARED_SETTINGS) if (s[k] !== settings[k]) record({ t: "setting", key: k, value: s[k] });
       setSettingsState(s);
-      saveSettings(s).catch(fail("Настройки"));
+      saveSettings(s).catch(fail("settings"));
     },
     setWords: (w: WordsSnapshot) => {
       setWordsState(w);
-      saveAnki({ ...w, queue: [] }).catch(fail("Словарь"));
+      saveAnki({ ...w, queue: [] }).catch(fail("words"));
       scheduleSync(1000);
     },
     flushAnki,
@@ -253,20 +260,20 @@ export function App() {
     sendNoteToAnki: async (h) => {
       const lesson = getLesson(h.lessonId);
       const now = new Date().toISOString();
-      const r = await send({ front: h.text, back: lesson ? `Урок «${lesson.title}» — ${lesson.subtitle}` : "Hoard", source: "note", addedAt: now, deck: NOTES_DECK });
+      const r = await send({ front: h.text, back: lesson ? T.app.noteBack(lesson.title, lesson.subtitle) : "Hoard", source: "note", addedAt: now, deck: NOTES_DECK });
       record({ t: "notesInAnki", ids: [h.id] });
-      toast(r === "sent" ? `Отправлено в Anki, колода ${NOTES_DECK}` : `Заметка в очереди. ${queuedNote}`);
+      toast(r === "sent" ? T.app.noteSent(NOTES_DECK) : T.app.noteQueued(queuedNote));
     },
     sendStoriesToAnki: async (lessons) => {
       const now = new Date().toISOString();
       let sent = 0, queued = 0;
       for (const l of lessons) {
         if (!l.story) continue;
-        const r = await send({ front: l.story.question, back: `${l.story.takeaway ?? l.story.title}\n\n«${l.story.title}», урок «${l.title}»`, source: "story", addedAt: now, deck: STORIES_DECK });
+        const r = await send({ front: l.story.question, back: T.app.storyBack(l.story.takeaway ?? l.story.title, l.story.title, l.title), source: "story", addedAt: now, deck: STORIES_DECK });
         if (r === "sent") sent++; else queued++;
       }
       record({ t: "storiesInAnki", ids: lessons.map((l) => l.id) });
-      toast(queued ? `Отправлено: ${sent}, в очереди: ${queued}. ${queuedNote}` : `Отправлено в Anki: ${sent}, колода ${STORIES_DECK}`);
+      toast(queued ? T.app.storiesQueued(sent, queued, queuedNote) : T.app.storiesSent(sent, STORIES_DECK));
     },
     toast,
     go: (r: Route) => guarded(() => nav.go(r))(),
@@ -309,28 +316,28 @@ export function App() {
     <Ctx.Provider value={state}>
       <header className="titlebar" data-tauri-drag-region>
         <div className="history">
-          <button aria-label="Назад" title="Назад (⌘[)" disabled={!nav.canBack} onClick={state.back}>‹</button>
-          <button aria-label="Вперёд" title="Вперёд (⌘])" disabled={!nav.canForward} onClick={state.forward}>›</button>
+          <button aria-label={T.nav.back} title={T.nav.backKey} disabled={!nav.canBack} onClick={state.back}>‹</button>
+          <button aria-label={T.nav.forward} title={T.nav.forwardKey} disabled={!nav.canForward} onClick={state.forward}>›</button>
         </div>
         <nav className="tabs" data-tauri-drag-region>
           {TABS.map((t) => (
-            <button key={t.label} className={route.name === t.route.name || t.sub.includes(route.name) ? "tab active" : "tab"} onClick={() => state.go(t.route)}>
-              {t.label}
+            <button key={t.tab} className={route.name === t.route.name || t.sub.includes(route.name) ? "tab active" : "tab"} onClick={() => state.go(t.route)}>
+              {T.tabs[t.tab]}
               {t.route.name === "home" && due > 0 && <span className="badge">{due}</span>}
             </button>
           ))}
         </nav>
         <button
           className={route.name === "settings" ? "tab settings active" : "tab settings"}
-          aria-label="Настройки" title="Настройки (⌘,)"
+          aria-label={T.nav.settings} title={T.nav.settingsKey}
           onClick={() => state.go({ name: "settings" })}
         >⚙︎</button>
       </header>
       {pending && (
         <div className="leave-bar" role="alertdialog">
           <span>{pending.message}</span>
-          <button className="small" onClick={pending.run}>Выйти</button>
-          <button className="ghost small" autoFocus onClick={() => setPending(null)}>Остаться</button>
+          <button className="small" onClick={pending.run}>{T.nav.leave}</button>
+          <button className="ghost small" autoFocus onClick={() => setPending(null)}>{T.nav.stay}</button>
         </div>
       )}
       <main className={WIDE.has(route.name) ? "wide" : undefined}>
@@ -351,9 +358,9 @@ export function App() {
       </main>
       {updateAvailable && !updateHidden && !toastText && (
         <div className="update-bar" role="status">
-          <span>Вышла новая версия Hoard</span>
-          <button className="small" onClick={() => location.reload()}>Обновить</button>
-          <button className="link small" aria-label="Позже" onClick={() => setUpdateHidden(true)}>Позже</button>
+          <span>{T.nav.update}</span>
+          <button className="small" onClick={() => location.reload()}>{T.nav.reload}</button>
+          <button className="link small" aria-label={T.nav.later} onClick={() => setUpdateHidden(true)}>{T.nav.later}</button>
         </div>
       )}
       {toastText && <div className="toast" role="status">{toastText}</div>}

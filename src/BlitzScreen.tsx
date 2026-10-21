@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { T } from "../shared/i18n";
 import { BLOCKS } from "../shared/lessons";
 import { applyTest, blitzBest, blitzSet, BLITZ_MS, BLITZ_SIZE, testInput, type Answered } from "../shared/tests";
 import type { TestResult } from "../shared/types";
@@ -36,7 +37,7 @@ export function BlitzScreen({ blockId }: { blockId?: string }) {
   };
 
   useEffect(() => {
-    setLeaveGuard(running ? "Прервать блиц? Результат не сохранится." : null);
+    setLeaveGuard(running ? T.blitz.leaveGuard : null);
     return () => setLeaveGuard(null);
   }, [running, setLeaveGuard]);
 
@@ -88,26 +89,26 @@ export function BlitzScreen({ blockId }: { blockId?: string }) {
     setAnswers([]);
   };
 
-  const title = block ? `Блиц: ${block.title}` : "Блиц";
+  const title = block ? T.blitz.titleBlock(block.title) : T.blitz.title;
 
   if (questions.length < 5) return (
     <article>
       <h1>{title}</h1>
-      <p>Для блица пока мало вопросов. Пройди пару уроков — и возвращайся.</p>
-      <button onClick={() => go({ name: "map" })}>К урокам</button>
+      <p>{T.blitz.tooFew}</p>
+      <button onClick={() => go({ name: "map" })}>{T.blitz.toMap}</button>
     </article>
   );
 
   if (result) return (
     <article className="blitz-result">
-      <p className={result.record ? "blitz-score gilt" : "blitz-score"}>{result.r.correct} из {result.r.total}</p>
+      <p className={result.record ? "blitz-score gilt" : "blitz-score"}>{T.blitz.score(result.r.correct, result.r.total)}</p>
       <p className="muted">
-        {Math.round((result.r.ms ?? BLITZ_MS) / 1000)} сек.
-        {result.record ? " Новый рекорд." : prevBest.current ? ` Рекорд: ${prevBest.current.correct} из ${prevBest.current.total}.` : ""}
+        {T.blitz.seconds(Math.round((result.r.ms ?? BLITZ_MS) / 1000))}
+        {result.record ? T.blitz.newRecord : prevBest.current ? T.blitz.record(prevBest.current.correct, prevBest.current.total) : ""}
       </p>
       {result.mistakes.length > 0 && (
         <section className="blitz-mistakes">
-          <h2>Ошибки</h2>
+          <h2>{T.blitz.mistakes}</h2>
           <ul className="lessons">
             {result.mistakes.map((m) => m.ex.kind === "choice" && (
               <li key={m.ex.id + m.lessonId}>
@@ -115,12 +116,12 @@ export function BlitzScreen({ blockId }: { blockId?: string }) {
               </li>
             ))}
           </ul>
-          <p className="muted small">Ошибки добавлены в повторение.</p>
+          <p className="muted small">{T.blitz.mistakesAdded}</p>
         </section>
       )}
       <div className="row center">
-        <button onClick={again}>Ещё раз</button>
-        <button className="ghost" onClick={() => go(block ? { name: "final", blockId: block.id } : { name: "home" })}>{block ? "К финалу блока" : "На главную"}</button>
+        <button onClick={again}>{T.blitz.again}</button>
+        <button className="ghost" onClick={() => go(block ? { name: "final", blockId: block.id } : { name: "home" })}>{block ? T.blitz.toFinal : T.blitz.toHome}</button>
       </div>
     </article>
   );
@@ -128,9 +129,9 @@ export function BlitzScreen({ blockId }: { blockId?: string }) {
   if (!running) return (
     <article>
       <h1>{title}</h1>
-      <p>{questions.length} вопросов с выбором ответа за 60 секунд. Отвечай клавишами 1–4 или кликом — следующий вопрос появится сразу.</p>
-      {prevBest.current && <p className="gilt">Рекорд: {prevBest.current.correct} из {prevBest.current.total}</p>}
-      <button autoFocus onClick={start}>Начать</button>
+      <p>{T.blitz.intro(questions.length)}</p>
+      {prevBest.current && <p className="gilt">{T.blitz.recordLine(prevBest.current.correct, prevBest.current.total)}</p>}
+      <button autoFocus onClick={start}>{T.blitz.start}</button>
     </article>
   );
 

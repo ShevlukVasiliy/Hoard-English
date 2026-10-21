@@ -1,3 +1,4 @@
+import { T } from "./i18n";
 import { PARTICLES, comparative, irregular, irregularByForm, looksAdjectiveRu, syllables, verbForms } from "./dict";
 import { shuffle } from "./random";
 import { vocab } from "./vocab";
@@ -78,7 +79,7 @@ export type DeckTask = { card: AnkiWord; ex: Exercise; kind: "order" | "verb" | 
 function orderTask(c: AnkiWord): DeckTask | null {
   const ws = words(c.front.replace(/[.!?]+$/, ""));
   if (!isPhrase(c) || ws.length > 12) return null;
-  return { card: c, kind: "order", ex: { id: `anki-o-${hash(c.front)}`, kind: "order", form: "phrase", prompt: `Собери фразу: ${hint(c.back)}`, words: shuffle(ws), answer: ws.join(" ") } };
+  return { card: c, kind: "order", ex: { id: `anki-o-${hash(c.front)}`, kind: "order", form: "phrase", prompt: T.anki.order(hint(c.back)), words: shuffle(ws), answer: ws.join(" ") } };
 }
 
 const PRONOUN = /^(i|you|he|she|it|we|they)$/;
@@ -119,7 +120,7 @@ function comparativeTask(c: AnkiWord): DeckTask | null {
   const b = c.front.toLowerCase();
   // у двусложных на -y в живом языке встречаются обе формы
   const answers = cmp[0].endsWith("ier") && syllables(b) === 2 ? [cmp[0], `more ${b}`] : [cmp[0]];
-  return { card: c, kind: "comparative", ex: { id: `anki-c-${hash(c.front)}`, kind: "gap", prompt: `${c.front.toLowerCase()} (${hint(c.back)}) → сравнительная степень: ___`, answers, explain: `${c.front.toLowerCase()} → ${cmp[0]} → the ${cmp[1]}` } };
+  return { card: c, kind: "comparative", ex: { id: `anki-c-${hash(c.front)}`, kind: "gap", prompt: `${c.front.toLowerCase()} (${hint(c.back)}) → ${T.anki.comparative}: ___`, answers, explain: `${c.front.toLowerCase()} → ${cmp[0]} → the ${cmp[1]}` } };
 }
 
 function phrasalTask(c: AnkiWord): DeckTask | null {
@@ -128,7 +129,7 @@ function phrasalTask(c: AnkiWord): DeckTask | null {
   const [, past, part] = verbForms(m[1]!);
   const usePart = Math.random() < 0.5;
   const form = `${usePart ? part : past} ${m[2]}`;
-  return { card: c, kind: "phrasal", ex: { id: `anki-p-${hash(c.front)}`, kind: "gap", prompt: `${m[1]} ${m[2]} (${hint(c.back)}) → ${usePart ? "третья форма (have …)" : "Past Simple"}: ___`, answers: [form], explain: `${m[1]} ${m[2]} → ${past} ${m[2]} → ${part} ${m[2]}` } };
+  return { card: c, kind: "phrasal", ex: { id: `anki-p-${hash(c.front)}`, kind: "gap", prompt: `${m[1]} ${m[2]} (${hint(c.back)}) → ${usePart ? T.anki.participle : "Past Simple"}: ___`, answers: [form], explain: `${m[1]} ${m[2]} → ${past} ${m[2]} → ${part} ${m[2]}` } };
 }
 
 const GENERATORS = [orderTask, verbTask, comparativeTask, phrasalTask];

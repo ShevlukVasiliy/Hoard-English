@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { T } from "../shared/i18n";
 import type { Exercise } from "../shared/types";
 import { ExerciseView } from "./ExerciseView";
 
@@ -21,7 +22,7 @@ export function Quiz({ total, next, onAnswer, onFinish, openEnded }: Props) {
   return (
     <>
       <div className="progressbar"><div style={{ width: `${(answers.length / total) * 100}%` }} /></div>
-      <p className="muted">{openEnded ? `Вопрос ${answers.length + 1}` : `Задание ${answers.length + 1} из ${total}`}</p>
+      <p className="muted">{openEnded ? T.exercise.question(answers.length + 1) : T.exercise.task(answers.length + 1, total)}</p>
       <ExerciseView
         key={current.key}
         ex={current.ex}

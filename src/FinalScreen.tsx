@@ -1,3 +1,4 @@
+import { T } from "../shared/i18n";
 import { BLOCKS } from "../shared/lessons";
 import { blockStatus } from "../shared/stats";
 import { blitzBest, BLITZ_SIZE } from "../shared/tests";
@@ -19,36 +20,36 @@ export function FinalScreen({ blockId }: { blockId: string }) {
 
   return (
     <article>
-      <p className="label">Финал блока</p>
+      <p className="label">{T.final.label}</p>
       <h1>{block.title}</h1>
       <p className="muted">
-        {s.ready ? "Все уроки блока пройдены." : `Пройдено уроков: ${s.done} из ${s.total}. Финал можно начать и сейчас.`}
+        {s.ready ? T.final.ready : T.final.notReady(s.done, s.total)}
       </p>
 
       <ul className="formats">
         <li>
           <div>
-            <h3>Контрольная {passed(control) && <span className="mark">✓</span>}</h3>
-            <p className="muted">15 вопросов по всем урокам блока, засчитывается от {Math.round(BLOCK_PASS_RATIO * 100)}%. Сданная контрольная закрывает блок.</p>
-            {control && <p className="small muted">Лучший результат: {control.correct} из {control.total}</p>}
+            <h3>{T.final.control} {passed(control) && <span className="mark">✓</span>}</h3>
+            <p className="muted">{T.final.controlHint(Math.round(BLOCK_PASS_RATIO * 100))}</p>
+            {control && <p className="small muted">{T.final.best(control.correct, control.total)}</p>}
           </div>
-          <button onClick={() => go({ name: "test", kind: "block", blockId })}>Начать</button>
+          <button onClick={() => go({ name: "test", kind: "block", blockId })}>{T.final.start}</button>
         </li>
         <li>
           <div>
-            <h3>Ловушки {passed(traps) && <span className="mark">✓</span>}</h3>
-            <p className="muted">Похожие конструкции рядом и поиск ошибок. Сложнее контрольной.</p>
-            {traps && <p className="small muted">Лучший результат: {traps.correct} из {traps.total}</p>}
+            <h3>{T.final.traps} {passed(traps) && <span className="mark">✓</span>}</h3>
+            <p className="muted">{T.final.trapsHint}</p>
+            {traps && <p className="small muted">{T.final.best(traps.correct, traps.total)}</p>}
           </div>
-          <button className="ghost" onClick={() => go({ name: "test", kind: "traps", blockId })}>Начать</button>
+          <button className="ghost" onClick={() => go({ name: "test", kind: "traps", blockId })}>{T.final.start}</button>
         </li>
         <li>
           <div>
-            <h3>Блиц по блоку</h3>
-            <p className="muted">{BLITZ_SIZE} вопросов за 60 секунд.</p>
-            {blitz && <p className="small gilt">Рекорд: {blitz.correct} из {blitz.total}</p>}
+            <h3>{T.final.blitz}</h3>
+            <p className="muted">{T.final.blitzHint(BLITZ_SIZE)}</p>
+            {blitz && <p className="small gilt">{T.final.record(blitz.correct, blitz.total)}</p>}
           </div>
-          <button className="ghost" onClick={() => go({ name: "blitz", blockId })}>Начать</button>
+          <button className="ghost" onClick={() => go({ name: "blitz", blockId })}>{T.final.start}</button>
         </li>
       </ul>
     </article>

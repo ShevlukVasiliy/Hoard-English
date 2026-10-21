@@ -16,7 +16,7 @@ import type { AnkiQueueItem, Highlight, Progress, Settings } from "./types";
 import { EMPTY_PROGRESS } from "./types";
 
 // Настройки, общие для всех устройств. Остальные (напоминания, Anki, автозапуск) — свои у каждого.
-export const SHARED_SETTINGS = ["theme", "theoryDepth", "storyDepth"] as const;
+export const SHARED_SETTINGS = ["theme", "theoryDepth", "storyDepth", "lang"] as const;
 export type SharedKey = (typeof SHARED_SETTINGS)[number];
 export type SharedSettings = Partial<Pick<Settings, SharedKey>>;
 

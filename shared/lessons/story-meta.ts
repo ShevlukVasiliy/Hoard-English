@@ -41,30 +41,19 @@ export const STORY_META: Record<string, { era: Era; question: string }> = {
   "so-such-too-enough": { era: "early-modern", question: "Как из одного слова to получилось ещё и too?" },
 };
 
-// Подписи и годы эпох; строка-эпиграф — на языке эпохи, из общественного достояния.
-export const ERA_INFO: Record<Era, { title: string; years: string; line: string; source: string }> = {
+// Строка-эпиграф эпохи — на языке эпохи, из общественного достояния.
+// Название, годы и источник — в словаре интерфейса (T.eras).
+export const ERA_INFO: Record<Era, { line: string }> = {
   "old": {
-    title: "Древнеанглийский",
-    years: "450–1100",
     line: "Fæder ūre þū þe eart on heofonum",
-    source: "«Отче наш», уэссекский перевод, около 1000 года",
   },
   "middle": {
-    title: "Среднеанглийский",
-    years: "1100–1500",
     line: "Whan that Aprille with his shoures soote",
-    source: "Джеффри Чосер, «Кентерберийские рассказы», около 1390 года",
   },
   "early-modern": {
-    title: "Ранненовоанглийский",
-    years: "1500–1700",
     line: "What do you read, my lord?",
-    source: "Уильям Шекспир, «Гамлет», около 1600 года",
   },
   "modern": {
-    title: "Современный английский",
-    years: "с 1700",
     line: "Language is the dress of thought.",
-    source: "Сэмюэл Джонсон, «Жизнеописания поэтов», 1779",
   },
 };

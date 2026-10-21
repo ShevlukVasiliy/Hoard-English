@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useState, type RefObject } from "react";
 import { addHighlight, locate, trimSpan } from "../shared/highlights";
+import { T } from "../shared/i18n";
 import type { Highlight } from "../shared/types";
 import { setHighlight } from "./selection";
 import { useApp } from "./state";
@@ -153,15 +154,15 @@ export function SelectionMenu({ root, lessonId }: { root: RefObject<HTMLElement 
   const style = { left: Math.max(12, Math.min(menu.x, window.innerWidth - 12)), top: menu.y };
   return (
     <div className="hl-menu" style={style} role="toolbar" onMouseDown={(e) => e.preventDefault()}>
-      {menu.kind === "save" && <button onClick={() => save(menu)}>Сохранить {inTauri && <span className="kbd">⌘S</span>}</button>}
-      {menu.kind === "done" && <span className="hl-done">Сохранено</span>}
+      {menu.kind === "save" && <button onClick={() => save(menu)}>{T.highlight.save} {inTauri && <span className="kbd">⌘S</span>}</button>}
+      {menu.kind === "done" && <span className="hl-done">{T.highlight.saved}</span>}
       {menu.kind === "saved" && (
         <>
-          <button onClick={() => { record({ t: "unhighlight", noteId: menu.h.id }); setMenu(null); }}>Убрать</button>
+          <button onClick={() => { record({ t: "unhighlight", noteId: menu.h.id }); setMenu(null); }}>{T.highlight.remove}</button>
           <span className="hl-sep" aria-hidden />
           {menu.h.ankiAt
-            ? <span className="hl-done">В Anki</span>
-            : <button onClick={() => { sendNoteToAnki(menu.h); setMenu(null); }}>В Anki</button>}
+            ? <span className="hl-done">{T.highlight.inAnki}</span>
+            : <button onClick={() => { sendNoteToAnki(menu.h); setMenu(null); }}>{T.highlight.toAnki}</button>}
         </>
       )}
     </div>

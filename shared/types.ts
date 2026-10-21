@@ -5,12 +5,14 @@
 //   приложение:  progress.json, settings.json, anki-words.json, highlights.json
 //   Rust-фон:     reminder-state.json
 
+import type { Lang } from "./i18n/lang";
+
 export const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 export type Level = (typeof LEVELS)[number];
 
-// Теория A1–B1 на русском, B2+ на английском. Ловушка всегда на русском.
-export const theoryLang = (level: Level): "ru" | "en" =>
-  LEVELS.indexOf(level) <= LEVELS.indexOf("B1") ? "ru" : "en";
+// Теория A1–B1 на родном языке ученика, B2+ на английском. Ловушка всегда на родном.
+export const theoryLang = (level: Level): "native" | "en" =>
+  LEVELS.indexOf(level) <= LEVELS.indexOf("B1") ? "native" : "en";
 
 // Все задания проверяются без нейросети: у каждого есть эталонные ответы.
 // hard — задание повышенной сложности: их больше при повторе хорошо пройденного урока.
@@ -39,8 +41,9 @@ export type TheoryBlock = {
   title?: string;
   // мини-разметка: **жирный**, `конструкция`, пустая строка = абзац
   text: string;
+  // ru — перевод на родной язык (имя поля историческое: для других языков его подменяет оверлей)
   examples?: { en: string; ru?: string }[];
-  // типичная ловушка для русскоговорящих, всегда на русском
+  // типичная ошибка носителей родного языка, всегда на родном (shared/lessons/l10n)
   trap?: string;
   // подача «подробно»: дополнительные абзацы после text
   more?: string;
@@ -178,6 +181,8 @@ export type Settings = {
   storyDepth: Depth;
   // мастер первого запуска пройден
   onboarded: boolean;
+  // родной язык ученика; не выбран — язык системы для нового ученика, русский для старого
+  lang?: Lang;
   // устаревшее: еженедельное напоминание до перехода на дни недели
   reminderWeekday?: number;
   reminderHour?: number;

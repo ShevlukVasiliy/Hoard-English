@@ -7,6 +7,7 @@
 // Каждое устройство пишет только свои файлы событий, поэтому одновременные
 // синхронизации не перетирают друг друга. Свой журнал устройство хранит и локально:
 // если файл в гисте пропал, он восстановится при следующей синхронизации.
+import { T } from "./i18n";
 import { decrypt, deriveKey, encrypt, isEnvelope, newSalt, type Envelope } from "./crypt";
 import { deviceOf, mergeEvents, monthOf, type JournalEvent } from "./journal";
 import type { AnkiWord } from "./types";
@@ -63,12 +64,12 @@ function client(token: string, http: Http) {
         headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", ...(init.body ? { "Content-Type": "application/json" } : {}) },
       });
     } catch {
-      throw new SyncError("нет связи с GitHub", true);
+      throw new SyncError(T.sync.errors.offline, true);
     }
-    if (r.status === 401) throw new SyncError("GitHub не принял токен: проверьте его или создайте новый");
-    if (r.status === 404) throw new SyncError("гист не найден: у токена нет доступа к гистам или гист удалён");
-    if (r.status === 403 || r.status === 429) throw new SyncError("GitHub временно ограничил запросы, попробуйте позже");
-    if (!r.ok) throw new SyncError(`GitHub ответил ${r.status}`);
+    if (r.status === 401) throw new SyncError(T.sync.errors.token);
+    if (r.status === 404) throw new SyncError(T.sync.errors.notFound);
+    if (r.status === 403 || r.status === 429) throw new SyncError(T.sync.errors.limited);
+    if (!r.ok) throw new SyncError(T.sync.errors.status(r.status));
     return r.json() as Promise<T>;
   };
   return {
@@ -85,13 +86,13 @@ function client(token: string, http: Http) {
     // большие файлы API отдаёт обрезанными — полный текст по raw_url
     async content(f: GistFile): Promise<string> {
       if (!f.truncated && f.content !== undefined) return f.content;
-      if (!f.raw_url) throw new SyncError(`файл ${f.filename} не прочитан`);
+      if (!f.raw_url) throw new SyncError(T.sync.errors.file(f.filename));
       try {
         const r = await http(f.raw_url);
         if (!r.ok) throw new Error(String(r.status));
         return r.text();
       } catch {
-        throw new SyncError(`файл ${f.filename} не прочитан`, true);
+        throw new SyncError(T.sync.errors.file(f.filename), true);
       }
     },
   };
@@ -108,15 +109,15 @@ async function newMarker(password?: string): Promise<Marker> {
 // Ключ шифрования по маркеру гиста: проверяет, что пароль совпадает с тем, которым гист создан.
 async function keyFor(marker: Marker, password?: string): Promise<CryptoKey | undefined> {
   if (!marker.salt || !marker.check) {
-    if (password) throw new SyncError("гист создан без пароля: уберите пароль на этом устройстве или начните новый гист");
+    if (password) throw new SyncError(T.sync.errors.plainGist);
     return undefined;
   }
-  if (!password) throw new SyncError("гист зашифрован: введите пароль");
+  if (!password) throw new SyncError(T.sync.errors.needPassword);
   const key = await deriveKey(password, marker.salt);
   try {
     if ((await decrypt(key, marker.check)) === PASSWORD_CHECK) return key;
   } catch { /* неверный пароль */ }
-  throw new SyncError("неверный пароль гиста");
+  throw new SyncError(T.sync.errors.badPassword);
 }
 
 async function pack(key: CryptoKey | undefined, value: unknown): Promise<string> {
@@ -127,7 +128,7 @@ async function pack(key: CryptoKey | undefined, value: unknown): Promise<string>
 async function unpack<T>(key: CryptoKey | undefined, text: string): Promise<T> {
   const raw: unknown = JSON.parse(text);
   if (!isEnvelope(raw)) return raw as T;
-  if (!key) throw new SyncError("в гисте зашифрованный файл, а пароль не задан");
+  if (!key) throw new SyncError(T.sync.errors.noKey);
   return JSON.parse(await decrypt(key, raw)) as T;
 }
 
@@ -142,7 +143,7 @@ export async function sync(
   local: { events: JournalEvent[]; words?: WordsSnapshot; ownsWords: boolean },
   http: Http = (url, init) => fetch(url, init),
 ): Promise<SyncResult> {
-  if (!cfg.token) throw new SyncError("не задан токен GitHub");
+  if (!cfg.token) throw new SyncError(T.sync.errors.noToken);
   const api = client(cfg.token, http);
 
   // гист: известный, найденный по описанию или новый
@@ -154,7 +155,7 @@ export async function sync(
   }
 
   const markerFile = gist.files[MARKER];
-  if (!markerFile) throw new SyncError("это не гист Hoard: нет файла hoard.json");
+  if (!markerFile) throw new SyncError(T.sync.errors.notHoard);
   const marker = JSON.parse(await api.content(markerFile)) as Marker;
   const key = await keyFor(marker, cfg.password);
 

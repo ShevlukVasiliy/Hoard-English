@@ -1,10 +1,9 @@
 import { partOrder } from "../shared/highlights";
+import { fmtDate, T } from "../shared/i18n";
 import { LESSONS } from "../shared/lessons";
 import type { Highlight } from "../shared/types";
 import { NOTES_DECK } from "../shared/types";
 import { useApp } from "./state";
-
-const fmt = (iso: string) => new Date(iso).toLocaleDateString("ru", { day: "numeric", month: "long" });
 
 export function NotesScreen() {
   const { highlights, record, sendNoteToAnki, go } = useApp();
@@ -22,18 +21,18 @@ export function NotesScreen() {
   return (
     <>
       <div className="title-row">
-        <h1>Заметки</h1>
+        <h1>{T.notes.title}</h1>
         {fresh.length > 0 && (
           <button className="ghost small" onClick={async () => { for (const h of fresh) await sendNoteToAnki(h); }}>
-            Отправить новые в Anki ({fresh.length})
+            {T.notes.sendNew(fresh.length)}
           </button>
         )}
       </div>
 
       {!groups.length ? (
-        <p className="muted">Выдели фрагмент в теории или истории и нажми «Сохранить» — он появится здесь.</p>
+        <p className="muted">{T.notes.empty}</p>
       ) : (
-        <p className="muted small">Карточки уходят в колоду {NOTES_DECK}: на лицевой стороне фрагмент, на обороте урок.</p>
+        <p className="muted small">{T.notes.deckHint(NOTES_DECK)}</p>
       )}
 
       {groups.map(({ lesson, notes }) => (
@@ -43,10 +42,10 @@ export function NotesScreen() {
             <figure key={h.id} className="note">
               <blockquote>{h.text}</blockquote>
               <figcaption className="small">
-                <span className="muted">{fmt(h.createdAt)}{h.part === "story" ? ", из истории" : h.part.startsWith("why") ? ", «Почему так?»" : ""}</span>
-                <button className="link" onClick={() => open(h)}>Открыть в {h.part === "story" ? "истории" : "уроке"}</button>
-                {h.ankiAt ? <span className="gilt">в Anki</span> : <button className="link" onClick={() => sendNoteToAnki(h)}>В Anki</button>}
-                <button className="link danger" onClick={() => record({ t: "unhighlight", noteId: h.id })}>Убрать</button>
+                <span className="muted">{fmtDate(h.createdAt)}{h.part === "story" ? T.notes.fromStory : h.part.startsWith("why") ? T.notes.fromWhy : ""}</span>
+                <button className="link" onClick={() => open(h)}>{h.part === "story" ? T.notes.openStory : T.notes.openLesson}</button>
+                {h.ankiAt ? <span className="gilt">{T.notes.inAnki}</span> : <button className="link" onClick={() => sendNoteToAnki(h)}>{T.notes.toAnki}</button>}
+                <button className="link danger" onClick={() => record({ t: "unhighlight", noteId: h.id })}>{T.notes.remove}</button>
               </figcaption>
             </figure>
           ))}

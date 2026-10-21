@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { T } from "../shared/i18n";
 
 // Свайп двумя пальцами по трекпаду: горизонтальный wheel с deltaX.
 // У края окна выезжает полукруг со стрелкой и заполняется по мере свайпа.
@@ -78,17 +79,6 @@ export function useShortcuts(k: Keys) {
   }, []);
 }
 
-const SHORTCUTS: [string, string][] = [
-  ["⌘[  ⌘]", "назад / вперёд"],
-  ["⌘1 … ⌘5", "вкладки"],
-  ["⌘,", "настройки"],
-  ["1 – 4", "вариант ответа"],
-  ["Enter", "проверить / дальше"],
-  ["⌘S", "сохранить выделенный фрагмент"],
-  ["?", "эта справка"],
-  ["Esc", "закрыть"],
-];
-
 export function ShortcutsHelp({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" || e.key === "?") { e.preventDefault(); onClose(); } };
@@ -97,15 +87,15 @@ export function ShortcutsHelp({ onClose }: { onClose: () => void }) {
   }, [onClose]);
   return (
     <div className="overlay" onClick={onClose}>
-      <div className="help" role="dialog" aria-label="Клавиши" onClick={(e) => e.stopPropagation()}>
-        <h2>Клавиши</h2>
+      <div className="help" role="dialog" aria-label={T.shortcuts.title} onClick={(e) => e.stopPropagation()}>
+        <h2>{T.shortcuts.title}</h2>
         <dl>
-          {SHORTCUTS.map(([k, v]) => (
+          {T.shortcuts.items.map(([k, v]) => (
             <div key={k}><dt><kbd>{k}</kbd></dt><dd>{v}</dd></div>
           ))}
         </dl>
-        <p className="muted small">Назад и вперёд — ещё и свайпом двумя пальцами по трекпаду.</p>
-        <button className="ghost small" autoFocus onClick={onClose}>Закрыть</button>
+        <p className="muted small">{T.shortcuts.swipe}</p>
+        <button className="ghost small" autoFocus onClick={onClose}>{T.shortcuts.close}</button>
       </div>
     </div>
   );

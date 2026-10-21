@@ -2,10 +2,8 @@ import { BLOCKS, LESSONS } from "../shared/lessons";
 import { dueReviews } from "../shared/progress";
 import { blockStatus, currentBlock, recommendations, weekStreak } from "../shared/stats";
 import { blitzBest, monthlyDue } from "../shared/tests";
+import { T } from "../shared/i18n";
 import { useApp } from "./state";
-
-export const plural = (n: number, one: string, few: string, many: string) =>
-  n % 10 === 1 && n % 100 !== 11 ? one : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? few : many;
 
 // Без разметки и обрезано по слову — для анонса.
 const plain = (md: string, n: number) => {
@@ -27,10 +25,10 @@ export function Home() {
   const today = opened[Math.floor(Date.now() / 86_400_000) % Math.max(1, opened.length)];
 
   const status = [
-    p.level ? `Уровень ${p.level.value}.` : null,
-    streak ? `Серия: ${streak} ${plural(streak, "неделя", "недели", "недель")} подряд.` : null,
-    block && bs ? `Блок «${block.title}»: ${bs.done} из ${bs.total}.` : null,
-    `Закрыто блоков: ${BLOCKS.filter((b) => blockStatus(p, b).passed).length} из ${BLOCKS.length}.`,
+    p.level ? T.home.level(p.level.value) : null,
+    streak ? T.home.streak(streak) : null,
+    block && bs ? T.home.block(block.title, bs.done, bs.total) : null,
+    T.home.closed(BLOCKS.filter((b) => blockStatus(p, b).passed).length, BLOCKS.length),
   ].filter(Boolean).join(" ");
 
   return (
@@ -39,19 +37,19 @@ export function Home() {
 
       {!p.level ? (
         <section className="next">
-          <p className="label">Сначала</p>
-          <button className="next-title" onClick={() => go({ name: "test", kind: "placement" })}>Входной тест</button>
-          <p className="muted">Обычно 20–25 вопросов. По нему подберём уроки.</p>
+          <p className="label">{T.home.first}</p>
+          <button className="next-title" onClick={() => go({ name: "test", kind: "placement" })}>{T.home.placement}</button>
+          <p className="muted">{T.home.placementHint}</p>
         </section>
       ) : block && bs?.ready && !bs.passed ? (
         <section className="next">
-          <p className="label">Дальше</p>
-          <button className="next-title" onClick={() => go({ name: "final", blockId: block.id })}>Финал блока «{block.title}»</button>
-          <p className="muted">Все уроки блока пройдены. Контрольная, ловушки и блиц по блоку.</p>
+          <p className="label">{T.home.next}</p>
+          <button className="next-title" onClick={() => go({ name: "final", blockId: block.id })}>{T.home.final(block.title)}</button>
+          <p className="muted">{T.home.finalHint}</p>
         </section>
       ) : next ? (
         <section className="next">
-          <p className="label">{p.lessons[next.id] ? "Повторить" : "Дальше"}</p>
+          <p className="label">{p.lessons[next.id] ? T.home.repeat : T.home.next}</p>
           <button className="next-title" onClick={() => go({ name: "lesson", id: next.id })}>{next.title}</button>
           <p className="muted">{next.subtitle}. {next.level}</p>
         </section>
@@ -60,34 +58,34 @@ export function Home() {
       <ul className="quiet">
         {due > 0 && (
           <li>
-            <span>{due} {plural(due, "ошибка ждёт", "ошибки ждут", "ошибок ждут")} повторения</span>
-            <button className="ghost small" onClick={() => go({ name: "review" })}>Повторить</button>
+            <span>{T.home.due(due)}</span>
+            <button className="ghost small" onClick={() => go({ name: "review" })}>{T.home.repeat}</button>
           </li>
         )}
         {monthlyDue(p) && (
           <li>
-            <span>Прошёл месяц с последней проверки уровня</span>
-            <button className="ghost small" onClick={() => go({ name: "test", kind: "monthly" })}>Проверить уровень</button>
+            <span>{T.home.monthly}</span>
+            <button className="ghost small" onClick={() => go({ name: "test", kind: "monthly" })}>{T.home.checkLevel}</button>
           </li>
         )}
         <li>
-          <span>Блиц: 15 вопросов за минуту{best ? <>, <span className="gilt">рекорд {best.correct} из {best.total}</span></> : ""}</span>
-          <button className="ghost small" onClick={() => go({ name: "blitz" })}>Начать</button>
+          <span>{T.home.blitz}{best ? <>, <span className="gilt">{T.home.blitzBest(best.correct, best.total)}</span></> : ""}</span>
+          <button className="ghost small" onClick={() => go({ name: "blitz" })}>{T.home.start}</button>
         </li>
         {recs.slice(1).map((l) => (
           <li key={l.id}>
             <button className="link" onClick={() => go({ name: "lesson", id: l.id })}>{l.title}</button>
-            <span className="muted small">{p.lessons[l.id] ? "повторить" : l.subtitle}</span>
+            <span className="muted small">{p.lessons[l.id] ? T.home.repeatSmall : l.subtitle}</span>
           </li>
         ))}
       </ul>
 
       {today?.story && (
         <section className="today">
-          <p className="label">История дня</p>
+          <p className="label">{T.home.today}</p>
           <h2><button className="link story-link" onClick={() => go({ name: "story", id: today.id })}>{today.story.title}</button></h2>
           <p className="reading today-text">{plain(today.story.text, 220)}</p>
-          <button className="link" onClick={() => go({ name: "story", id: today.id })}>Читать</button>
+          <button className="link" onClick={() => go({ name: "story", id: today.id })}>{T.home.read}</button>
         </section>
       )}
 

@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
+import { T } from "../shared/i18n";
 import { BLOCKS } from "../shared/lessons";
 import { Placement, applyTest, blockTest, monthlyTest, testInput, trapsTest, type Answered, type Question } from "../shared/tests";
 import { BLOCK_PASS_RATIO, type TestResult } from "../shared/types";
 import { Quiz } from "./Quiz";
 import { useApp, type Route } from "./state";
-
-const TITLES = { placement: "Входной тест", monthly: "Проверка уровня", block: "Контрольная", traps: "Ловушки" };
 
 export function TestScreen({ route }: { route: Extract<Route, { name: "test" }> }) {
   const { progress, record, go } = useApp();
@@ -39,7 +38,7 @@ export function TestScreen({ route }: { route: Extract<Route, { name: "test" }> 
     setResult(p.tests[p.tests.length - 1]!);
   };
 
-  const title = `${TITLES[route.kind]}${block ? ` · ${block.title}` : ""}`;
+  const title = `${T.test.titles[route.kind]}${block ? ` · ${block.title}` : ""}`;
 
   if (result) {
     const ratio = result.correct / result.total;
@@ -47,16 +46,16 @@ export function TestScreen({ route }: { route: Extract<Route, { name: "test" }> 
     return (
       <article>
         <h1>{title}</h1>
-        <p className="big">{result.correct} из {result.total}</p>
-        {result.level && <p>Уровень по тесту: <strong>{result.level}</strong></p>}
+        <p className="big">{T.test.score(result.correct, result.total)}</p>
+        {result.level && <p>{T.test.level} <strong>{result.level}</strong></p>}
         {route.kind === "block" && (
-          <p>{ratio >= BLOCK_PASS_RATIO ? "Контрольная сдана, блок закрыт." : `Для зачёта нужно ${Math.round(BLOCK_PASS_RATIO * 100)}%. Повтори уроки блока и попробуй ещё раз.`}</p>
+          <p>{ratio >= BLOCK_PASS_RATIO ? T.test.passed : T.test.needed(Math.round(BLOCK_PASS_RATIO * 100))}</p>
         )}
-        {route.kind === "traps" && <p>{ratio >= BLOCK_PASS_RATIO ? "Ловушки пройдены." : "Ловушки сложнее контрольной — ошибки вернутся на повторение."}</p>}
-        {weak.length > 0 && <p className="muted">Слабые темы: {weak.join(", ")}. Они попадут в рекомендации.</p>}
-        <p className="muted">Ошибки добавлены в повторение.</p>
+        {route.kind === "traps" && <p>{ratio >= BLOCK_PASS_RATIO ? T.test.trapsPassed : T.test.trapsFailed}</p>}
+        {weak.length > 0 && <p className="muted">{T.test.weak(weak.join(", "))}</p>}
+        <p className="muted">{T.test.mistakesAdded}</p>
         <div className="row">
-          {block ? <button onClick={() => go({ name: "final", blockId: block.id })}>К финалу блока</button> : <button onClick={() => go({ name: "home" })}>На главную</button>}
+          {block ? <button onClick={() => go({ name: "final", blockId: block.id })}>{T.test.toFinal}</button> : <button onClick={() => go({ name: "home" })}>{T.test.toHome}</button>}
         </div>
       </article>
     );
@@ -68,12 +67,12 @@ export function TestScreen({ route }: { route: Extract<Route, { name: "test" }> 
       {!started ? (
         <>
           <p>
-            {route.kind === "placement" && "Обычно 20–25 вопросов на разные темы. Сложность подстраивается под ответы, тест заканчивается, когда уровень ясен. Если не знаешь — лучше ответь наугад, чем бросить."}
-            {route.kind === "block" && `15 вопросов по всем урокам блока. Засчитывается от ${Math.round(BLOCK_PASS_RATIO * 100)}%.`}
-            {route.kind === "traps" && "12 заданий: похожие конструкции рядом и поиск ошибок. Сложнее контрольной."}
-            {route.kind === "monthly" && "20 вопросов твоего уровня и соседних. По результату уровень пересчитается."}
+            {route.kind === "placement" && T.test.intro.placement}
+            {route.kind === "block" && T.test.intro.block(Math.round(BLOCK_PASS_RATIO * 100))}
+            {route.kind === "traps" && T.test.intro.traps}
+            {route.kind === "monthly" && T.test.intro.monthly}
           </p>
-          <button onClick={() => setStarted(true)}>Начать</button>
+          <button onClick={() => setStarted(true)}>{T.test.start}</button>
         </>
       ) : (
         <Quiz
