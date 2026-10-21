@@ -1,10 +1,13 @@
-// Выделение текста в областях для чтения (.reading).
+// Выделение текста в частях урока и истории ([data-part]).
 // WebKit при многострочном выделении заливает промежуток до края блока.
 // Поэтому системное выделение там прозрачное, а рисуем его через
 // CSS Custom Highlight API: подсвечиваются только строки с текстом.
 
 type Highlights = { set(name: string, h: unknown): void; delete(name: string): void };
-declare const Highlight: { new (...ranges: Range[]): unknown };
+declare const Highlight: { new (...ranges: Range[]): { priority: number } };
+
+// выделение поверх позолоты, вспышка — поверх обычной позолоты
+const PRIORITY: Record<string, number> = { selection: 2, flash: 1 };
 
 export const highlightsSupported = () => typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight !== "undefined";
 
@@ -12,14 +15,16 @@ const registry = () => (CSS as unknown as { highlights: Highlights }).highlights
 
 export function setHighlight(name: string, ranges: Range[]) {
   if (!highlightsSupported()) return;
-  if (ranges.length) registry().set(name, new Highlight(...ranges));
-  else registry().delete(name);
+  if (!ranges.length) return registry().delete(name);
+  const h = new Highlight(...ranges);
+  h.priority = PRIORITY[name] ?? 0;
+  registry().set(name, h);
 }
 
-// Ближайшая область чтения, внутри которой лежит узел.
+// Часть текста, внутри которой лежит узел.
 export function readingRoot(node: Node | null): HTMLElement | null {
   const el = node instanceof Element ? node : node?.parentElement;
-  return (el?.closest(".reading") as HTMLElement | null) ?? null;
+  return (el?.closest("[data-part]") as HTMLElement | null) ?? null;
 }
 
 // Подключается один раз в App.

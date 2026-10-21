@@ -8,12 +8,20 @@ import { part5 } from "./part5";
 import { part6 } from "./part6";
 import { EXTRA } from "./extra";
 import { STORIES } from "./stories";
+import { STORY_META } from "./story-meta";
+import { DEEP } from "./deep";
 
-export const LESSONS: Lesson[] = [...part3, ...part1, ...part2, ...part4, ...part5, ...part6].map((l) => ({
-  ...l,
-  exercises: [...l.exercises, ...(EXTRA[l.id] ?? [])],
-  story: l.story ?? STORIES[l.id],
-}));
+export const LESSONS: Lesson[] = [...part3, ...part1, ...part2, ...part4, ...part5, ...part6].map((l) => {
+  const story = l.story ?? STORIES[l.id];
+  const meta = STORY_META[l.id];
+  const deep = DEEP[l.id];
+  return {
+    ...l,
+    theory: l.theory.map((b, i) => ({ ...b, ...deep?.theory?.[i] })),
+    exercises: [...l.exercises, ...(EXTRA[l.id] ?? [])],
+    story: story && meta ? { ...story, ...meta, long: deep?.story } : undefined,
+  };
+});
 
 // Блоки идут в порядке прохождения; у каждого в конце контрольная.
 export const BLOCKS: LessonBlock[] = [
@@ -54,12 +62,16 @@ export function validateCatalog(): string[] {
   for (const l of LESSONS) {
     const n = BLOCKS.filter((b) => b.lessonIds.includes(l.id)).length;
     if (l.exercises.length < 15) errors.push(`${l.id}: в банке ${l.exercises.length} заданий, нужно 15+`);
-    if (!l.story) errors.push(`${l.id}: нет истории`);
+    if (!l.story) errors.push(`${l.id}: нет истории или эпохи с вопросом (story-meta.ts)`);
+    const deep = DEEP[l.id];
+    if (deep?.theory && deep.theory.length > l.theory.length) errors.push(`${l.id}: в DEEP больше блоков теории, чем в уроке`);
     if (n !== 1) errors.push(`${l.id}: в ${n} блоках`);
     const ids = new Set(l.exercises.map((e) => e.id));
     if (ids.size !== l.exercises.length) errors.push(`${l.id}: повторяющиеся id заданий`);
   }
   for (const id of Object.keys(EXTRA)) if (!byId.has(id)) errors.push(`EXTRA: нет урока ${id}`);
+  for (const id of Object.keys(DEEP)) if (!byId.has(id)) errors.push(`DEEP: нет урока ${id}`);
+  for (const id of Object.keys(STORY_META)) if (!byId.has(id)) errors.push(`STORY_META: нет урока ${id}`);
   for (const b of BLOCKS) for (const id of b.lessonIds) if (!byId.has(id)) errors.push(`${b.id}: нет урока ${id}`);
   return errors;
 }

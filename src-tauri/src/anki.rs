@@ -170,6 +170,8 @@ fn pick_model() -> Result<(String, String, String), String> {
 #[tauri::command]
 pub fn anki_add_note(deck: String, front: String, back: String) -> Result<(), String> {
     let (model, f1, f2) = pick_model()?;
+    // колоды вроде Hoard::Заметки создаются при первой карточке; существующая не меняется
+    anki_connect(&serde_json::json!({ "action": "createDeck", "version": 6, "params": { "deck": deck } }))?;
     let mut fields = HashMap::new();
     fields.insert(f1, front);
     fields.insert(f2, back);

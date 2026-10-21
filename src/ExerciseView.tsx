@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { checkAnswer, correctAnswer } from "../shared/check";
 import type { Exercise, OrderForm } from "../shared/types";
 import { shuffle } from "../shared/random";
@@ -60,6 +60,17 @@ function Body({ ex, locked, onSubmit }: { ex: Exercise; locked: boolean; onSubmi
 
 function Choice({ ex, locked, onSubmit }: { ex: Extract<Exercise, { kind: "choice" }>; locked: boolean; onSubmit: (g: string) => void }) {
   const [picked, setPicked] = useState<number | null>(null);
+  // ответ клавишами 1–9
+  useEffect(() => {
+    if (locked) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement).tagName === "INPUT") return;
+      const i = Number(e.key) - 1;
+      if (i >= 0 && i < ex.options.length) { e.preventDefault(); setPicked(i); onSubmit(String(i)); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [ex, locked, onSubmit]);
   return (
     <>
       <p className="prompt"><Inline text={ex.prompt} /></p>
@@ -103,6 +114,18 @@ function Order({ ex, locked, onSubmit }: { ex: Extract<Exercise, { kind: "order"
   const pool = useMemo(() => shuffle(ex.words.map((_, i) => i)), [ex]);
   const [chosen, setChosen] = useState<number[]>([]);
   const sentence = chosen.map((i) => ex.words[i]).join(" ");
+  const complete = chosen.length === ex.words.length;
+  // Enter — проверить собранную фразу, Backspace — убрать последнее слово
+  useEffect(() => {
+    if (locked) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "Enter" && complete) { e.preventDefault(); onSubmit(sentence); }
+      if (e.key === "Backspace" && chosen.length) { e.preventDefault(); setChosen(chosen.slice(0, -1)); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [chosen, complete, locked, onSubmit, sentence]);
   return (
     <>
       <p className="label">{ex.prompt ?? ORDER_TASK[ex.form]}</p>
@@ -118,7 +141,7 @@ function Order({ ex, locked, onSubmit }: { ex: Extract<Exercise, { kind: "order"
       {!locked && (
         <div className="row">
           <button className="ghost" disabled={!chosen.length} onClick={() => setChosen([])}>Сбросить</button>
-          <button disabled={chosen.length !== ex.words.length} onClick={() => onSubmit(sentence)}>Проверить</button>
+          <button disabled={!complete} onClick={() => onSubmit(sentence)}>Проверить</button>
         </div>
       )}
     </>

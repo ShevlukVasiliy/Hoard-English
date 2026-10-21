@@ -3,9 +3,9 @@ mod data;
 mod reminder;
 
 use tauri::{
-    menu::{Menu, MenuItem},
+    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager, WindowEvent,
+    Emitter, Manager, WindowEvent,
 };
 use tauri_plugin_autostart::MacosLauncher;
 
@@ -29,9 +29,45 @@ pub fn run() {
             anki::anki_profiles,
             anki::anki_decks,
             anki::anki_words,
-            anki::anki_add_note
+            anki::anki_add_note,
+            reminder::test_reminder
         ])
         .setup(|app| {
+            // меню macOS: стандартное плюс «Перейти»; пункты уходят во фронтенд событием "menu"
+            #[cfg(target_os = "macos")]
+            {
+                let item = |id: &str, title: &str, key: &str| MenuItem::with_id(app, format!("nav:{id}"), title, true, (!key.is_empty()).then_some(key));
+                let go = Submenu::with_items(
+                    app,
+                    "Перейти",
+                    true,
+                    &[
+                        &item("back", "Назад", "CmdOrCtrl+[")?,
+                        &item("forward", "Вперёд", "CmdOrCtrl+]")?,
+                        &PredefinedMenuItem::separator(app)?,
+                        &item("tab:0", "Главная", "CmdOrCtrl+1")?,
+                        &item("tab:1", "Уроки", "CmdOrCtrl+2")?,
+                        &item("tab:2", "История языка", "CmdOrCtrl+3")?,
+                        &item("tab:3", "Заметки", "CmdOrCtrl+4")?,
+                        &item("tab:4", "Слова", "CmdOrCtrl+5")?,
+                        &PredefinedMenuItem::separator(app)?,
+                        &item("settings", "Настройки", "CmdOrCtrl+,")?,
+                        // без сочетания: «?» в меню перехватывался бы и в полях ввода
+                        &item("shortcuts", "Клавиши  ?", "")?,
+                    ],
+                )?;
+                let menu = Menu::default(app.handle())?;
+                menu.append(&go)?;
+                app.set_menu(menu)?;
+                app.on_menu_event(|app, e| {
+                    let id = e.id().0.as_str();
+                    if id.starts_with("nav:") {
+                        show_main(app);
+                        let _ = app.emit("menu", id);
+                    }
+                });
+            }
+
             let open = MenuItem::with_id(app, "open", "Открыть", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Выйти", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open, &quit])?;
@@ -57,6 +93,15 @@ pub fn run() {
                 if let Some(w) = app.get_webview_window("main") {
                     let _ = w.hide();
                 }
+            }
+            // клик по уведомлению открывает окно
+            {
+                use tauri_plugin_notification::NotificationExt;
+                let handle = app.handle().clone();
+                app.notification().on_action(move |_| {
+                    let h = handle.clone();
+                    let _ = handle.run_on_main_thread(move || show_main(&h));
+                })?;
             }
             reminder::spawn(app.handle().clone());
             Ok(())

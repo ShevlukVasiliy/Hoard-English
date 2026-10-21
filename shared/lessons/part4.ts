@@ -1,7 +1,7 @@
-import type { Lesson } from "../types";
+import type { LessonSource } from "../types";
 
 // Блоки B1: формы глагола, связки предложений, мелкие слова.
-export const part4: Lesson[] = [
+export const part4: LessonSource[] = [
   {
     id: "gerund-infinitive",
     title: "Gerund или Infinitive",

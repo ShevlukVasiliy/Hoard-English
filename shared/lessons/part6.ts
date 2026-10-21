@@ -1,7 +1,7 @@
-import type { Lesson } from "../types";
+import type { LessonSource } from "../types";
 
 // Дополнительные уроки B1.
-export const part6: Lesson[] = [
+export const part6: LessonSource[] = [
   {
     id: "obligation",
     title: "must, have to, should",

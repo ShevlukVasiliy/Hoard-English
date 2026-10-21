@@ -1,6 +1,10 @@
 import { BLOCKS, blockLessons } from "../shared/lessons";
 import { blockStatus, isRecommended, mastery } from "../shared/stats";
-import type { Lesson } from "../shared/types";
+import { blitzBest } from "../shared/tests";
+import { BLOCK_PASS_RATIO, type Lesson, type Progress, type TestKind } from "../shared/types";
+
+const bestOf = (p: Progress, kind: TestKind, blockId: string) =>
+  Math.max(0, ...p.tests.filter((t) => t.kind === kind && t.blockId === blockId).map((t) => t.correct / t.total));
 import { useApp } from "./state";
 
 function Row({ l }: { l: Lesson }) {
@@ -37,10 +41,16 @@ export function MapScreen() {
             <ul className="lessons">
               {blockLessons(b).map((l) => <Row key={l.id} l={l} />)}
               <li className="final-row">
-                <span className="muted">Финал блока</span>
-                <span>
-                  <button className="link small" onClick={() => go({ name: "test", kind: "block", blockId: b.id })}>
-                    Контрольная{s.passed ? " ✓" : ""}
+                <button className="link" onClick={() => go({ name: "final", blockId: b.id })}>Финал блока</button>
+                <span className="small">
+                  <button className="link" onClick={() => go({ name: "test", kind: "block", blockId: b.id })}>
+                    Контрольная{s.passed && <span className="mark">✓</span>}
+                  </button>
+                  <button className="link" onClick={() => go({ name: "test", kind: "traps", blockId: b.id })}>
+                    Ловушки{bestOf(p, "traps", b.id) >= BLOCK_PASS_RATIO && <span className="mark">✓</span>}
+                  </button>
+                  <button className="link" onClick={() => go({ name: "blitz", blockId: b.id })}>
+                    Блиц{blitzBest(p, b.id) && <span className="gilt"> {blitzBest(p, b.id)!.correct}/{blitzBest(p, b.id)!.total}</span>}
                   </button>
                 </span>
               </li>

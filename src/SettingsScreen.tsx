@@ -3,12 +3,11 @@ import { useState } from "react";
 import type { Settings } from "../shared/types";
 import { useApp } from "./state";
 import { inTauri } from "./storage";
+import { DepthChoice, ReminderFields } from "./SettingsFields";
 import { setAutostart } from "./system";
 
-const DAYS = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
-
 export function SettingsScreen() {
-  const { settings: s, setSettings, progress } = useApp();
+  const { settings: s, setSettings, progress, go } = useApp();
   const [note, setNote] = useState<string | null>(null);
   const set = (patch: Partial<Settings>) => setSettings({ ...s, ...patch });
 
@@ -30,19 +29,14 @@ export function SettingsScreen() {
       <h1>Настройки</h1>
 
       <section>
+        <h2>Подача</h2>
+        <DepthChoice which="theoryDepth" label="Теория" />
+        <DepthChoice which="storyDepth" label="Истории про язык" />
+      </section>
+
+      <section>
         <h2>Напоминание</h2>
-        <label className="check">
-          <input type="checkbox" checked={s.remindersEnabled} onChange={(e) => set({ remindersEnabled: e.target.checked })} />
-          Раз в неделю присылать уведомление
-        </label>
-        <div className="row">
-          <select value={s.reminderWeekday} disabled={!s.remindersEnabled} onChange={(e) => set({ reminderWeekday: Number(e.target.value) })}>
-            {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
-          </select>
-          <select value={s.reminderHour} disabled={!s.remindersEnabled} onChange={(e) => set({ reminderHour: Number(e.target.value) })}>
-            {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>)}
-          </select>
-        </div>
+        <ReminderFields />
         <label className="check">
           <input
             type="checkbox"
@@ -85,6 +79,7 @@ export function SettingsScreen() {
         <p className="muted">Всё хранится в ~/.eng-teacher/ на этом компьютере.</p>
         <button className="ghost" onClick={exportProgress}>Экспортировать прогресс в JSON</button>
         {note && <p className="muted">{note}</p>}
+        <p><button className="link" onClick={() => go({ name: "onboarding" })}>Пройти первичную настройку заново</button></p>
       </section>
 
       <section>

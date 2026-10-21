@@ -75,10 +75,11 @@ export const nextLesson = (p: Progress) => recommendations(p, 1)[0];
 
 export const isRecommended = (p: Progress, l: Lesson) => recommendations(p, 5).includes(l);
 
-// Пишется в progress.json при каждом сохранении, чтобы фоновый поток знал про блок.
+// Пишется в progress.json при каждом сохранении, чтобы фоновый поток знал про блок и следующий урок.
 export function withReminderHint(p: Progress): Progress {
   const b = currentBlock(p);
-  if (!b) return { ...p, nextBlock: undefined };
+  const nextLessonTitle = nextLesson(p)?.title;
+  if (!b) return { ...p, nextBlock: undefined, nextLesson: nextLessonTitle };
   const s = blockStatus(p, b);
-  return { ...p, nextBlock: { title: b.title, lessonsLeft: s.total - s.done } };
+  return { ...p, nextBlock: { title: b.title, lessonsLeft: s.total - s.done }, nextLesson: nextLessonTitle };
 }

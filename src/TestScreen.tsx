@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
 import { BLOCKS } from "../shared/lessons";
-import { Placement, blockTest, monthlyTest, recordTest, type Answered, type Question } from "../shared/tests";
+import { Placement, blockTest, monthlyTest, recordTest, trapsTest, type Answered, type Question } from "../shared/tests";
 import { BLOCK_PASS_RATIO, type TestResult } from "../shared/types";
 import { Quiz } from "./Quiz";
 import { useApp, type Route } from "./state";
 
-const TITLES = { placement: "Входной тест", monthly: "Проверка уровня", block: "Контрольная" };
+const TITLES = { placement: "Входной тест", monthly: "Проверка уровня", block: "Контрольная", traps: "Ловушки" };
 
 export function TestScreen({ route }: { route: Extract<Route, { name: "test" }> }) {
   const { progress, setProgress, go } = useApp();
-  const block = route.kind === "block" ? BLOCKS.find((b) => b.id === route.blockId) : undefined;
+  const block = route.kind === "block" || route.kind === "traps" ? BLOCKS.find((b) => b.id === route.blockId) : undefined;
   const [started, setStarted] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
 
@@ -17,6 +17,7 @@ export function TestScreen({ route }: { route: Extract<Route, { name: "test" }> 
   const placement = useMemo(() => (route.kind === "placement" ? new Placement() : null), [route.kind]);
   const fixed = useMemo<Question[]>(() => {
     if (route.kind === "block") return blockTest(route.blockId);
+    if (route.kind === "traps") return trapsTest(route.blockId);
     if (route.kind === "monthly") return monthlyTest(progress.level?.value ?? "A2");
     return [];
   }, [route]);
@@ -48,11 +49,14 @@ export function TestScreen({ route }: { route: Extract<Route, { name: "test" }> 
         <p className="big">{result.correct} из {result.total}</p>
         {result.level && <p>Уровень по тесту: <strong>{result.level}</strong></p>}
         {route.kind === "block" && (
-          <p>{ratio >= BLOCK_PASS_RATIO ? "Контрольная сдана, блок закрыт." : `Нужно ${Math.round(BLOCK_PASS_RATIO * 100)}%. Повтори уроки блока и попробуй ещё раз.`}</p>
+          <p>{ratio >= BLOCK_PASS_RATIO ? "Контрольная сдана, блок закрыт." : `Для зачёта нужно ${Math.round(BLOCK_PASS_RATIO * 100)}%. Повтори уроки блока и попробуй ещё раз.`}</p>
         )}
+        {route.kind === "traps" && <p>{ratio >= BLOCK_PASS_RATIO ? "Ловушки пройдены." : "Ловушки сложнее контрольной — ошибки вернутся на повторение."}</p>}
         {weak.length > 0 && <p className="muted">Слабые темы: {weak.join(", ")}. Они попадут в рекомендации.</p>}
         <p className="muted">Ошибки добавлены в повторение.</p>
-        <button onClick={() => go({ name: "home" })}>На главную</button>
+        <div className="row">
+          {block ? <button onClick={() => go({ name: "final", blockId: block.id })}>К финалу блока</button> : <button onClick={() => go({ name: "home" })}>На главную</button>}
+        </div>
       </article>
     );
   }
@@ -64,7 +68,8 @@ export function TestScreen({ route }: { route: Extract<Route, { name: "test" }> 
         <>
           <p>
             {route.kind === "placement" && "Обычно 20–25 вопросов на разные темы. Сложность подстраивается под ответы, тест заканчивается, когда уровень ясен. Если не знаешь — лучше ответь наугад, чем бросить."}
-            {route.kind === "block" && `15 вопросов по урокам блока. Чтобы закрыть блок, нужно ${Math.round(BLOCK_PASS_RATIO * 100)}%.`}
+            {route.kind === "block" && `15 вопросов по всем урокам блока. Засчитывается от ${Math.round(BLOCK_PASS_RATIO * 100)}%.`}
+            {route.kind === "traps" && "12 заданий: похожие конструкции рядом и поиск ошибок. Сложнее контрольной."}
             {route.kind === "monthly" && "20 вопросов твоего уровня и соседних. По результату уровень пересчитается."}
           </p>
           <button onClick={() => setStarted(true)}>Начать</button>

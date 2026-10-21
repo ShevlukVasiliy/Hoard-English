@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { AnkiCache, Progress, Settings } from "../shared/types";
+import type { AnkiCache, HighlightsFile, Progress, Settings } from "../shared/types";
 import { DEFAULT_SETTINGS, EMPTY_PROGRESS } from "../shared/types";
 
 // Вне Tauri (vite в браузере) — localStorage, чтобы интерфейс можно было смотреть без сборки.
@@ -24,8 +24,18 @@ async function readJson<T extends object>(name: string, fallback: T): Promise<T>
 export const loadProgress = () => readJson<Progress>("progress.json", EMPTY_PROGRESS);
 export const saveProgress = (p: Progress) => write("progress.json", JSON.stringify(p, null, 2));
 
-export const loadSettings = () => readJson<Settings>("settings.json", DEFAULT_SETTINGS);
+// Старые настройки: напоминание раз в неделю в reminderWeekday/reminderHour.
+// Час сохраняем, напоминание становится ежедневным.
+export async function loadSettings(): Promise<Settings> {
+  const s = await readJson<Settings>("settings.json", DEFAULT_SETTINGS);
+  if (s.reminderHour === undefined) return s;
+  const { reminderWeekday: _d, reminderHour, ...rest } = s;
+  return { ...rest, reminderMinutes: reminderHour * 60 };
+}
 export const saveSettings = (s: Settings) => write("settings.json", JSON.stringify(s, null, 2));
+
+export const loadHighlights = () => readJson<HighlightsFile>("highlights.json", { items: [] });
+export const saveHighlights = (h: HighlightsFile) => write("highlights.json", JSON.stringify(h, null, 2));
 
 export const EMPTY_ANKI: AnkiCache = { syncedAt: "", deck: "", words: [], queue: [] };
 export const loadAnki = () => readJson<AnkiCache>("anki-words.json", EMPTY_ANKI);

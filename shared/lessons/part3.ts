@@ -1,7 +1,7 @@
-import type { Lesson } from "../types";
+import type { LessonSource } from "../types";
 
 // Блоки A1–A2: основы, существительные, глаголы и сравнения.
-export const part3: Lesson[] = [
+export const part3: LessonSource[] = [
   {
     id: "to-be",
     title: "to be: am, is, are",

@@ -2,7 +2,7 @@
 // файл фонового потока (reminder-state.json) ему только на чтение.
 use std::{fs, path::PathBuf};
 
-const APP_FILES: &[&str] = &["progress.json", "settings.json", "anki-words.json"];
+const APP_FILES: &[&str] = &["progress.json", "settings.json", "anki-words.json", "highlights.json"];
 const READ_ONLY: &[&str] = &["reminder-state.json"];
 
 pub fn data_dir() -> Result<PathBuf, String> {

@@ -1,6 +1,6 @@
-import type { Lesson } from "../types";
+import type { LessonSource } from "../types";
 
-export const part2: Lesson[] = [
+export const part2: LessonSource[] = [
   {
     id: "conditionals-1-2",
     title: "First & Second Conditional",

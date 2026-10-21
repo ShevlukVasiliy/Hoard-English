@@ -1,7 +1,7 @@
 [package]
 name = "eng-teacher"
 version = "0.1.0"
-description = "Grammar — приложение для грамматики английского"
+description = "Hoard — приложение для грамматики английского"
 edition = "2021"
 
 [lib]

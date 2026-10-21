@@ -1,6 +1,6 @@
-import type { Lesson } from "../types";
+import type { LessonSource } from "../types";
 
-export const part1: Lesson[] = [
+export const part1: LessonSource[] = [
   {
     id: "present-simple-continuous",
     title: "Present Simple vs Continuous",

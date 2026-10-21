@@ -44,7 +44,7 @@ export async function flushQueue(deck: string, cache: AnkiCache): Promise<{ cach
   let sent = 0;
   for (const item of cache.queue) {
     try {
-      await addToAnki(deck, item);
+      await addToAnki(item.deck ?? deck, item);
       sent++;
     } catch (e) {
       // дубликат уже в колоде — считаем доставленным

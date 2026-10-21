@@ -1,8 +1,8 @@
-import type { Story } from "../types";
+import type { StorySource } from "../types";
 
 // «История про язык» для каждого урока. Язык — как у теории урока:
 // A1–B1 по-русски, B2+ по-английски.
-export const STORIES: Record<string, Story> = {
+export const STORIES: Record<string, StorySource> = {
   "present-simple-continuous": {
     title: "Как человек оказался «на охоте»",
     text: "Шекспир ещё спокойно писал `What do you read, my lord?` — так Полоний спрашивает Гамлета, что тот читает прямо сейчас. Present Continuous тогда был редкостью, и простое настоящее работало за оба времени, как в русском.\n\nСама форма `is + -ing` выросла из оборота с предлогом: `he is on hunting` — «он на охоте». Предлог стёрся до `a-` (`he is a-hunting`, так до сих пор говорят в песнях и диалектах), а потом исчез совсем.\n\nВ XVIII–XIX веках Continuous стал обязательным для «прямо сейчас», и `What do you read?` начало звучать как «Что ты вообще читаешь?».",

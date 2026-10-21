@@ -1,4 +1,5 @@
 import { BLOCKS, LESSONS, blockLessons, getLesson } from "./lessons";
+import { TRAPS } from "./lessons/traps";
 import { PLACEMENT_BANK, PLACEMENT_LESSON } from "./placement";
 import { recordAnswers } from "./progress";
 import { sample, shuffle } from "./random";
@@ -19,9 +20,10 @@ export const QUESTION_BANK: Question[] = LESSONS.flatMap((l) =>
 // Входной тест и проверка уровня — из отдельного банка.
 export const PLACEMENT_QUESTIONS: Question[] = PLACEMENT_BANK.map((p) => ({ lessonId: PLACEMENT_LESSON, ...p }));
 
-// Задание по ключу из повторения: урок или банк входного теста.
+// Задание по ключу из повторения: урок, банк входного теста или «ловушки» блока.
 export function findExercise(lessonId: string, exerciseId: string): Exercise | undefined {
   if (lessonId === PLACEMENT_LESSON) return PLACEMENT_BANK.find((p) => p.ex.id === exerciseId)?.ex;
+  if (lessonId.startsWith("traps:")) return TRAPS[lessonId.slice(6)]?.find((e) => e.id === exerciseId);
   return getLesson(lessonId)?.exercises.find((e) => e.id === exerciseId);
 }
 
@@ -139,6 +141,49 @@ export function blockTest(blockId: string): Question[] {
   return shuffle(out);
 }
 
+export const TRAPS_SIZE = 12;
+
+// «Ловушки»: свой банк блока плюс исправление ошибок и трансформации из его уроков.
+export function trapsTest(blockId: string): Question[] {
+  const block = BLOCKS.find((b) => b.id === blockId);
+  if (!block) return [];
+  const lessons = blockLessons(block);
+  const own: Question[] = (TRAPS[blockId] ?? []).map((ex) => ({ lessonId: `traps:${blockId}`, level: block.level, topic: lessons[0]?.topic ?? blockId, ex }));
+  const hard = lessons.flatMap((l) =>
+    l.exercises.filter((e) => e.kind === "fix" || e.kind === "transform" || e.hard).map((ex) => ({ lessonId: l.id, level: l.level, topic: l.topic, ex })),
+  );
+  const fromOwn = sample(own, Math.min(own.length, Math.ceil(TRAPS_SIZE * 0.6)));
+  return shuffle([...fromOwn, ...sample(hard, TRAPS_SIZE - fromOwn.length)]);
+}
+
+export const BLITZ_SIZE = 15;
+export const BLITZ_MS = 60_000;
+
+// Блиц: только выбор из вариантов, по пройденным урокам (или по блоку).
+// Пока пройденных уроков мало — добираем уроками не выше текущего уровня.
+export function blitzSet(p: Progress, blockId?: string): Question[] {
+  const choice = QUESTION_BANK.filter((q) => q.ex.kind === "choice");
+  if (blockId) {
+    const block = BLOCKS.find((b) => b.id === blockId);
+    const ids = new Set(block?.lessonIds ?? []);
+    // в блоке из двух уроков вопросов с выбором мало — добавляем «ловушки» с выбором
+    const traps: Question[] = (TRAPS[blockId] ?? []).filter((e) => e.kind === "choice")
+      .map((ex) => ({ lessonId: `traps:${blockId}`, level: block!.level, topic: getLesson(block!.lessonIds[0]!)?.topic ?? blockId, ex }));
+    return sample([...choice.filter((q) => ids.has(q.lessonId)), ...traps], BLITZ_SIZE);
+  }
+  const done = choice.filter((q) => p.lessons[q.lessonId]);
+  const lvl = p.level ? levelIndex(p.level.value) : 0;
+  const near = choice.filter((q) => !p.lessons[q.lessonId] && levelIndex(q.level) <= lvl);
+  const picked = sample(done, BLITZ_SIZE);
+  return shuffle([...picked, ...sample(near, BLITZ_SIZE - picked.length)]);
+}
+
+export function blitzBest(p: Progress, blockId?: string): TestResult | undefined {
+  return p.tests
+    .filter((t) => t.kind === "blitz" && t.blockId === blockId)
+    .sort((a, b) => b.correct - a.correct || (a.ms ?? Infinity) - (b.ms ?? Infinity))[0];
+}
+
 // Ежемесячная проверка: текущий уровень и соседние.
 export function monthlyTest(level: Level): Question[] {
   const i = levelIndex(level);
@@ -150,15 +195,15 @@ export const MONTH = 30 * 86_400_000;
 
 export function monthlyDue(p: Progress, now = Date.now()): boolean {
   if (!p.level) return false;
-  const last = p.tests.filter((t) => t.kind !== "block").map((t) => Date.parse(t.at));
+  const last = p.tests.filter((t) => t.kind === "placement" || t.kind === "monthly").map((t) => Date.parse(t.at));
   return !last.length || now - Math.max(...last) >= MONTH;
 }
 
 // Записывает результат теста: история тестов, освоенность тем, ошибки на повтор, пересчёт уровня.
-export function recordTest(p: Progress, kind: TestKind, answers: Answered[], blockId?: string, now = new Date().toISOString()): Progress {
+export function recordTest(p: Progress, kind: TestKind, answers: Answered[], blockId?: string, now = new Date().toISOString(), ms?: number): Progress {
   const correct = answers.filter((a) => a.correct).length;
-  const level = kind === "block" ? undefined : estimateLevel(answers);
-  const result: TestResult = { kind, at: now, blockId, correct, total: answers.length, level, byTopic: byTopic(answers) };
+  const level = kind === "placement" || kind === "monthly" ? estimateLevel(answers) : undefined;
+  const result: TestResult = { kind, at: now, blockId, correct, total: answers.length, level, byTopic: byTopic(answers), ms };
   let next = recordAnswers(p, answers.map((a) => ({ lessonId: a.lessonId, topic: a.topic, exerciseId: a.ex.id, correct: a.correct, given: a.given })), now);
   next = { ...next, tests: [...next.tests, result] };
   return { ...next, level: recomputeLevel(next, now) };

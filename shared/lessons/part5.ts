@@ -1,7 +1,7 @@
-import type { Lesson } from "../types";
+import type { LessonSource } from "../types";
 
 // Блоки B2–C1. Теория по-английски, ловушки — по-русски.
-export const part5: Lesson[] = [
+export const part5: LessonSource[] = [
   {
     id: "wish-if-only",
     title: "wish and if only",

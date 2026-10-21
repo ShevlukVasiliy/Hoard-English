@@ -2,7 +2,7 @@
 //
 // Данные живут в ~/.eng-teacher/, у каждого файла ровно один «владелец»,
 // чтобы приложение и модель никогда не перетирали записи друг друга:
-//   приложение:  progress.json, settings.json, anki-words.json
+//   приложение:  progress.json, settings.json, anki-words.json, highlights.json
 //   Rust-фон:     reminder-state.json
 
 export const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
@@ -13,17 +13,20 @@ export const theoryLang = (level: Level): "ru" | "en" =>
   LEVELS.indexOf(level) <= LEVELS.indexOf("B1") ? "ru" : "en";
 
 // Все задания проверяются без нейросети: у каждого есть эталонные ответы.
-export type Exercise =
-  | { id: string; kind: "choice"; prompt: string; options: string[]; answer: number; explain?: string }
+// hard — задание повышенной сложности: их больше при повторе хорошо пройденного урока.
+type Common = { id: string; explain?: string; hard?: boolean };
+export type Exercise = Common & (
+  | { kind: "choice"; prompt: string; options: string[]; answer: number }
   // prompt содержит ___ на месте пропуска; answers — все допустимые варианты
-  | { id: string; kind: "gap"; prompt: string; answers: string[]; hint?: string; explain?: string }
+  | { kind: "gap"; prompt: string; answers: string[]; hint?: string }
   // words показываются перемешанными; answer — правильное предложение;
   // form называет, что собрать, и задаёт знак в конце (у фраз из Anki знака нет)
-  | { id: string; kind: "order"; form: OrderForm; prompt?: string; words: string[]; answer: string; explain?: string }
+  | { kind: "order"; form: OrderForm; prompt?: string; words: string[]; answer: string }
   // prompt — предложение с ошибкой; answers — исправленные варианты
-  | { id: string; kind: "fix"; prompt: string; answers: string[]; explain?: string }
+  | { kind: "fix"; prompt: string; answers: string[] }
   // task — инструкция («Перепиши в пассиве»), source — исходное предложение
-  | { id: string; kind: "transform"; task: string; source: string; answers: string[]; explain?: string };
+  | { kind: "transform"; task: string; source: string; answers: string[] }
+);
 
 export type OrderForm = "statement" | "question" | "negative" | "phrase";
 
@@ -39,15 +42,29 @@ export type TheoryBlock = {
   examples?: { en: string; ru?: string }[];
   // типичная ловушка для русскоговорящих, всегда на русском
   trap?: string;
+  // подача «подробно»: дополнительные абзацы после text
+  more?: string;
+  // глосса «Почему так?» — историческое пояснение к блоку, на полях
+  why?: string;
 };
+
+// Эпохи английского для ленты «История языка».
+export const ERAS = ["old", "middle", "early-modern", "modern"] as const;
+export type Era = (typeof ERAS)[number];
 
 // «История про язык» — почему в английском так. Открывается после практики.
 export type Story = {
   title: string;
-  // та же мини-разметка, что в теории
+  // та же мини-разметка, что в теории; подача «кратко»
   text: string;
+  // подача «подробно»: полная версия, заменяет text
+  long?: string;
   // одна фраза-вывод в конце
   takeaway?: string;
+  // эпоха, о которой история
+  era: Era;
+  // вопрос для карточки Anki; ответ — takeaway
+  question: string;
 };
 
 export type Lesson = {
@@ -63,6 +80,11 @@ export type Lesson = {
   story?: Story;
 };
 
+// Так уроки и истории записаны в файлах контента; эпоха, вопрос и подробная
+// версия истории подмешиваются в каталоге (lessons/index.ts).
+export type StorySource = Omit<Story, "era" | "question" | "long">;
+export type LessonSource = Omit<Lesson, "story"> & { story?: StorySource };
+
 // Блок — группа уроков с контрольной в конце.
 export type LessonBlock = {
   id: string;
@@ -74,7 +96,8 @@ export type LessonBlock = {
 // Вопрос тестов: обычное задание с уровнем и темой.
 export type TestQuestion = Exercise & { level: Level; topic: string };
 
-export type TestKind = "placement" | "block" | "monthly";
+// block — контрольная финала блока, traps — «ловушки», blitz — блиц (с blockId — по блоку)
+export type TestKind = "placement" | "block" | "monthly" | "traps" | "blitz";
 
 export type TestResult = {
   kind: TestKind;
@@ -84,6 +107,8 @@ export type TestResult = {
   total: number;
   // для placement и monthly — оценённый уровень
   level?: Level;
+  // для блица — сколько миллисекунд заняло
+  ms?: number;
   byTopic: Record<string, { correct: number; total: number }>;
 };
 
@@ -117,39 +142,78 @@ export type Progress = {
   tests: TestResult[];
   // id уроков с открытой «Историей про язык»
   stories: string[];
+  // истории, отправленные в Anki
+  storiesInAnki?: string[];
   // ISO-даты занятий, из них считается серия недель
   activity: string[];
   // подсказка для фонового напоминания в Rust: текущий блок и сколько уроков осталось
   nextBlock?: { title: string; lessonsLeft: number };
+  // подсказка для напоминания: название следующего урока
+  nextLesson?: string;
 };
 
 export type AnkiWord = { front: string; back: string; lapses: number; ivl: number; reps: number };
 
 // Слово, которое ждёт добавления через AnkiConnect, пока Anki закрыт.
-export type AnkiQueueItem = { front: string; back: string; source: "lesson" | "ngsl"; addedAt: string };
+// deck — своя колода (заметки, истории); без неё — колода из настроек.
+export type AnkiQueueItem = { front: string; back: string; source: "lesson" | "ngsl" | "note" | "story"; addedAt: string; deck?: string };
 
 export type AnkiCache = { syncedAt: string; deck: string; words: AnkiWord[]; queue: AnkiQueueItem[] };
+
+export type Depth = "short" | "long";
 
 export type Settings = {
   ankiPath?: string;
   ankiDeck: string;
-  // 0 = воскресенье … 6 = суббота
-  reminderWeekday: number;
-  reminderHour: number;
+  // дни напоминаний: 0 = воскресенье … 6 = суббота
+  reminderDays: number[];
+  // время напоминания в минутах от полуночи
+  reminderMinutes: number;
   remindersEnabled: boolean;
   autostart: boolean;
   theme: "system" | "light" | "dark";
+  // подача теории и историй: кратко или подробно
+  theoryDepth: Depth;
+  storyDepth: Depth;
+  // мастер первого запуска пройден
+  onboarded: boolean;
+  // устаревшее: еженедельное напоминание до перехода на дни недели
+  reminderWeekday?: number;
+  reminderHour?: number;
 };
+
+// Сохранённый фрагмент урока. part — где он: "theory:0", "story", "why:2".
+// start — смещение в тексте части (подсказка), text — сам фрагмент: по нему
+// фрагмент находится, даже если текст урока поправили.
+export type Highlight = {
+  id: string;
+  lessonId: string;
+  part: string;
+  start: number;
+  text: string;
+  createdAt: string;
+  // когда отправлен в Anki
+  ankiAt?: string;
+};
+
+export type HighlightsFile = { items: Highlight[] };
 
 
 export const DEFAULT_SETTINGS: Settings = {
   ankiDeck: "english",
-  reminderWeekday: 0,
-  reminderHour: 11,
+  reminderDays: [0, 1, 2, 3, 4, 5, 6],
+  reminderMinutes: 19 * 60,
   remindersEnabled: true,
   autostart: true,
   theme: "system",
+  theoryDepth: "short",
+  storyDepth: "short",
+  onboarded: false,
 };
+
+// Колоды Anki для заметок и историй.
+export const NOTES_DECK = "Hoard::Заметки";
+export const STORIES_DECK = "Hoard::Истории";
 
 export const EMPTY_PROGRESS: Progress = {
   lessons: {},
