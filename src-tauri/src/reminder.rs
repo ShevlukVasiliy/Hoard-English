@@ -94,7 +94,7 @@ fn tick(app: &AppHandle) -> Result<(), String> {
     let progress = read_json("progress.json").unwrap_or(Value::Null);
     app.notification()
         .builder()
-        .title("Grammar")
+        .title("Hoard")
         .body(message(&progress, now))
         .show()
         .map_err(|e| e.to_string())?;

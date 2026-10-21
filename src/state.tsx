@@ -19,6 +19,10 @@ export type AppState = {
   setSettings: (s: Settings) => void;
   setAnki: (a: AnkiCache) => void;
   go: (r: Route) => void;
+  back: () => void;
+  forward: () => void;
+  // экран просит подтвердить уход (например, во время практики); null — снять
+  setLeaveGuard: (message: string | null) => void;
 };
 
 export const Ctx = createContext<AppState | null>(null);

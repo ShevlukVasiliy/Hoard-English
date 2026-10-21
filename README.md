@@ -1,4 +1,4 @@
-# Grammar
+# Hoard
 
 Десктоп-приложение для грамматики английского: 36 уроков A1–C1, адаптивный входной тест, контрольные по блокам, повторение ошибок по интервалам, задания из твоей колоды Anki и еженедельное напоминание. Работает полностью офлайн, без ИИ.
 
@@ -35,7 +35,7 @@ cd src-tauri && cargo check
 bun run app:build
 ```
 
-Результат: `src-tauri/target/release/bundle/macos/Grammar.app` и `.dmg`.
+Результат: `src-tauri/target/release/bundle/macos/Hoard.app` и `.dmg`.
 
 ## Данные
 

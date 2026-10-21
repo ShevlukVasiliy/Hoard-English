@@ -37,7 +37,7 @@ pub fn run() {
             let menu = Menu::with_items(app, &[&open, &quit])?;
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().cloned().ok_or("нет иконки")?)
-                .tooltip("Grammar")
+                .tooltip("Hoard")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, e| match e.id.as_ref() {

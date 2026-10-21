@@ -71,6 +71,7 @@ function Choice({ ex, locked, onSubmit }: { ex: Extract<Exercise, { kind: "choic
             className={locked ? (i === ex.answer ? "right" : i === picked ? "wrong" : "") : ""}
             onClick={() => { setPicked(i); onSubmit(String(i)); }}
           >
+            {i < 9 && <span className="key" aria-hidden>{i + 1}</span>}
             {o}
           </button>
         ))}

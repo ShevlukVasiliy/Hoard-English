@@ -4,7 +4,8 @@ import { blockStatus, currentBlock, recommendations, weekStreak } from "../share
 import { monthlyDue } from "../shared/tests";
 import { useApp } from "./state";
 
-const weeks = (n: number) => (n % 10 === 1 && n % 100 !== 11 ? "неделя" : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "недели" : "недель");
+export const plural = (n: number, one: string, few: string, many: string) =>
+  n % 10 === 1 && n % 100 !== 11 ? one : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? few : many;
 
 export function Home() {
   const { progress: p, go } = useApp();
@@ -13,69 +14,61 @@ export function Home() {
   const recs = recommendations(p);
   const block = currentBlock(p);
   const bs = block && blockStatus(p, block);
+  const next = recs[0];
+
+  const status = [
+    p.level ? `Уровень ${p.level.value}.` : null,
+    streak ? `Серия: ${streak} ${plural(streak, "неделя", "недели", "недель")} подряд.` : null,
+    block && bs ? `Блок «${block.title}»: ${bs.done} из ${bs.total}.` : null,
+    `Закрыто блоков: ${BLOCKS.filter((b) => blockStatus(p, b).passed).length} из ${BLOCKS.length}.`,
+  ].filter(Boolean).join(" ");
 
   return (
     <>
-      <h1>Grammar</h1>
+      <h1 className="home-title">Hoard</h1>
 
-      <section className="cards">
-        <div className="card">
-          <p className="label">Уровень</p>
-          {p.level ? (
-            <p className="big">{p.level.value}</p>
-          ) : (
-            <button onClick={() => go({ name: "test", kind: "placement" })}>Пройти входной тест</button>
-          )}
-        </div>
-        <div className="card">
-          <p className="label">Серия</p>
-          <p className="big">{streak} <span className="muted small">{weeks(streak)}</span></p>
-        </div>
-        <div className="card">
-          <p className="label">На повтор</p>
-          <p className="big">{due}</p>
-        </div>
-      </section>
-
-      {due > 0 && (
-        <section className="callout">
-          <p>Накопилось ошибок на повтор: <strong>{due}</strong>.</p>
-          <button onClick={() => go({ name: "review" })}>Повторить ошибки</button>
+      {!p.level ? (
+        <section className="next">
+          <p className="label">Сначала</p>
+          <button className="next-title" onClick={() => go({ name: "test", kind: "placement" })}>Входной тест</button>
+          <p className="muted">Обычно 20–25 вопросов. По нему подберём уроки.</p>
         </section>
-      )}
-
-      {block && bs?.ready && !bs.passed && (
-        <section className="callout">
-          <p>Блок «{block.title}» пройден. Контрольная: 15 вопросов, нужно 80%.</p>
-          <button onClick={() => go({ name: "test", kind: "block", blockId: block.id })}>Начать контрольную</button>
+      ) : block && bs?.ready && !bs.passed ? (
+        <section className="next">
+          <p className="label">Дальше</p>
+          <button className="next-title" onClick={() => go({ name: "test", kind: "block", blockId: block.id })}>Финал блока «{block.title}»</button>
+          <p className="muted">Все уроки блока пройдены. Контрольная — 15 вопросов.</p>
         </section>
-      )}
-
-      {monthlyDue(p) && (
-        <section className="callout">
-          <p>Прошёл месяц с последней проверки уровня.</p>
-          <button className="ghost" onClick={() => go({ name: "test", kind: "monthly" })}>Проверить уровень</button>
+      ) : next ? (
+        <section className="next">
+          <p className="label">{p.lessons[next.id] ? "Повторить" : "Дальше"}</p>
+          <button className="next-title" onClick={() => go({ name: "lesson", id: next.id })}>{next.title}</button>
+          <p className="muted">{next.subtitle}. {next.level}</p>
         </section>
-      )}
+      ) : null}
 
-      {recs.length > 0 && (
-        <section>
-          <h2>Дальше</h2>
-          <ul className="lessons">
-            {recs.map((l, i) => (
-              <li key={l.id}>
-                <button className={i === 0 ? "" : "link"} onClick={() => go({ name: "lesson", id: l.id })}>{l.title}</button>
-                <span className="muted">{l.level} · {p.lessons[l.id] ? "повторить" : l.subtitle}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <ul className="quiet">
+        {due > 0 && (
+          <li>
+            <span>{due} {plural(due, "ошибка ждёт", "ошибки ждут", "ошибок ждут")} повторения</span>
+            <button className="ghost small" onClick={() => go({ name: "review" })}>Повторить</button>
+          </li>
+        )}
+        {monthlyDue(p) && (
+          <li>
+            <span>Прошёл месяц с последней проверки уровня</span>
+            <button className="ghost small" onClick={() => go({ name: "test", kind: "monthly" })}>Проверить уровень</button>
+          </li>
+        )}
+        {recs.slice(1).map((l) => (
+          <li key={l.id}>
+            <button className="link" onClick={() => go({ name: "lesson", id: l.id })}>{l.title}</button>
+            <span className="muted small">{p.lessons[l.id] ? "повторить" : l.subtitle}</span>
+          </li>
+        ))}
+      </ul>
 
-      {block && bs && (
-        <p className="muted">Блок «{block.title}»: {bs.done} из {bs.total} уроков · всего блоков закрыто {BLOCKS.filter((b) => blockStatus(p, b).passed).length} из {BLOCKS.length}</p>
-      )}
-
+      <p className="status-line">{status}</p>
     </>
   );
 }
