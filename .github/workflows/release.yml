@@ -50,8 +50,28 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Hoard ${{ github.ref_name }}
-          releaseBody: Установщики для macOS, Windows и Linux. Версия для iPhone — в браузере, см. README.
+          releaseBody: See the table below to pick your file.
           releaseDraft: true
           prerelease: false
           tauriScript: bunx tauri
           args: ${{ matrix.args }}
+
+  # Понятные имена файлов (macOS Apple Silicon / Intel …) и таблица «какой файл скачать»
+  assets:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Переименовать установщики
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: scripts/release-assets.sh "${{ github.ref_name }}"
+      - name: Добавить таблицу в описание релиза
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          gh release view "$GITHUB_REF_NAME" --json body --jq .body > body.md
+          echo >> body.md
+          sed "s/VERSION/$v/g" .github/release-download.md >> body.md
+          gh release edit "$GITHUB_REF_NAME" --notes-file body.md

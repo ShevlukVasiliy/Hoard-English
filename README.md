@@ -94,7 +94,12 @@ The interface follows the same language. You choose it on first launch and can c
 
 ## Install
 
-**Mac, Windows, Linux.** Download the installer from [Releases](https://github.com/ShevlukVasiliy/Hoard-English/releases/latest). The builds are not signed yet, so the first launch needs one extra step:
+**Mac, Windows, Linux.** Download the installer from [Releases](https://github.com/ShevlukVasiliy/Hoard-English/releases/latest):
+- Mac with Apple Silicon (M1 and later): `…-macOS-Apple-Silicon.dmg`; Mac with Intel: `…-macOS-Intel.dmg`. To check, open Apple menu → About This Mac.
+- Windows: `…-Windows-Setup.exe`.
+- Linux: `…-Linux.AppImage`, `.deb` or `.rpm`.
+
+The builds are not signed yet, so the first launch needs one extra step:
 - macOS: open Hoard once and close the warning. Then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to Hoard.
 - Windows: in the SmartScreen window, click **More info**, then **Run anyway**.
 

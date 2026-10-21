@@ -94,7 +94,12 @@ Hoard — грамматика английского от A1 до C1, кото�
 
 ## Установка
 
-**Mac, Windows, Linux.** Скачай установщик со страницы [Releases](https://github.com/ShevlukVasiliy/Hoard-English/releases/latest). Сборки пока не подписаны, поэтому при первом запуске нужен один лишний шаг:
+**Mac, Windows, Linux.** Скачай установщик со страницы [Releases](https://github.com/ShevlukVasiliy/Hoard-English/releases/latest):
+- Mac на Apple Silicon (M1 и новее): `…-macOS-Apple-Silicon.dmg`; Mac на Intel: `…-macOS-Intel.dmg`. Проверить можно в меню Apple → «Об этом Mac».
+- Windows: `…-Windows-Setup.exe`.
+- Linux: `…-Linux.AppImage`, `.deb` или `.rpm`.
+
+Сборки пока не подписаны, поэтому при первом запуске нужен один лишний шаг:
 - macOS: открой Hoard один раз и закрой предупреждение. Затем зайди в **Системные настройки → Конфиденциальность и безопасность**, пролистай вниз и нажми **Всё равно открыть** рядом с Hoard.
 - Windows: в окне SmartScreen нажми **Подробнее**, затем **Выполнить в любом случае**.
 
