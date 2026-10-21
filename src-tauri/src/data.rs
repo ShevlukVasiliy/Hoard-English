@@ -5,9 +5,16 @@ use std::{fs, path::PathBuf};
 const APP_FILES: &[&str] = &["progress.json", "settings.json", "anki-words.json", "highlights.json", "events.json", "sync.json"];
 const READ_ONLY: &[&str] = &["reminder-state.json"];
 
+// Домашняя папка: HOME на macOS и Linux, USERPROFILE на Windows.
+pub fn home() -> Result<PathBuf, String> {
+    std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
+        .ok_or_else(|| "не найдена домашняя папка".to_string())
+}
+
 pub fn data_dir() -> Result<PathBuf, String> {
-    let home = std::env::var_os("HOME").ok_or("HOME не задан")?;
-    Ok(PathBuf::from(home).join(".eng-teacher"))
+    Ok(home()?.join(".eng-teacher"))
 }
 
 #[tauri::command]
@@ -40,8 +47,7 @@ pub fn write_data(name: String, contents: String) -> Result<(), String> {
 // Экспорт прогресса в ~/Downloads, имя с датой; возвращает путь.
 #[tauri::command]
 pub fn export_progress(contents: String) -> Result<String, String> {
-    let home = std::env::var_os("HOME").ok_or("HOME не задан")?;
-    let dir = PathBuf::from(home).join("Downloads");
+    let dir = home()?.join("Downloads");
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

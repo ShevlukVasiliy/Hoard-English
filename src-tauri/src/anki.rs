@@ -18,9 +18,20 @@ pub struct Word {
     reps: i64,
 }
 
+// Папка Anki2 в стандартном месте каждой системы.
 fn anki_root() -> Result<PathBuf, String> {
-    let home = std::env::var_os("HOME").ok_or("HOME не задан")?;
-    Ok(PathBuf::from(home).join("Library/Application Support/Anki2"))
+    #[cfg(target_os = "windows")]
+    if let Some(appdata) = std::env::var_os("APPDATA") {
+        return Ok(PathBuf::from(appdata).join("Anki2"));
+    }
+    let home = crate::data::home()?;
+    if cfg!(target_os = "macos") {
+        Ok(home.join("Library/Application Support/Anki2"))
+    } else if cfg!(target_os = "windows") {
+        Ok(home.join("AppData/Roaming/Anki2"))
+    } else {
+        Ok(home.join(".local/share/Anki2"))
+    }
 }
 
 // Профили — папки с collection.anki2 внутри Anki2.
@@ -40,8 +51,8 @@ pub fn anki_profiles() -> Result<Vec<Profile>, String> {
 }
 
 fn expand(path: &str) -> PathBuf {
-    match (path.strip_prefix("~/"), std::env::var_os("HOME")) {
-        (Some(rest), Some(home)) => PathBuf::from(home).join(rest),
+    match (path.strip_prefix("~/"), crate::data::home()) {
+        (Some(rest), Ok(home)) => home.join(rest),
         _ => PathBuf::from(path),
     }
 }
