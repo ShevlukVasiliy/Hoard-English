@@ -45,7 +45,7 @@ function demoJournal(): JournalEvent[] {
   return events;
 }
 
-type Shot = { name: string; route?: object; scroll?: string; clicks?: string[]; height?: number; mobile?: boolean };
+type Shot = { name: string; route?: object; scroll?: string; clicks?: string[]; height?: number; mobile?: boolean; lang?: string };
 const SHOTS: Shot[] = [
   { name: "home" },
   { name: "map", route: { name: "map" } },
@@ -56,11 +56,13 @@ const SHOTS: Shot[] = [
   { name: "blitz", route: { name: "blitz" }, clicks: ["text=Начать"], height: 560 },
   { name: "traps", route: { name: "test", kind: "traps", blockId: "perfect" }, clicks: ["text=Начать", ".options button >> nth=1"], height: 640 },
   { name: "phone-home", mobile: true },
+  // урок на других родных языках: ловушка и глосса под язык ученика
+  ...(["es", "de", "pl"] as const).map((lang) => ({ name: `gloss-${lang}`, lang, route: { name: "lesson", id: "present-perfect-past-simple" }, scroll: ".trap, [data-part^='why']" })),
   { name: "phone-lesson", route: { name: "lesson", id: "articles" }, mobile: true },
 ];
 
-async function seed(page: Page) {
-  const settings = { ...DEFAULT_SETTINGS, onboarded: true };
+async function seed(page: Page, lang?: string) {
+  const settings = { ...DEFAULT_SETTINGS, onboarded: true, lang };
   await page.addInitScript(([events, settings]) => {
     localStorage.setItem("events.json", JSON.stringify({ events }));
     localStorage.setItem("settings.json", JSON.stringify(settings));
@@ -78,7 +80,7 @@ for (const scheme of ["light", "dark"] as const) {
       hasTouch: s.mobile,
     });
     const page = await ctx.newPage();
-    await seed(page);
+    await seed(page, s.lang);
     await page.goto(BASE + (s.route ? "#" + encodeURIComponent(JSON.stringify(s.route)) : ""));
     await page.waitForTimeout(800);
     for (const c of s.clicks ?? []) { await page.locator(c).first().click({ timeout: 3000 }).catch(() => {}); await page.waitForTimeout(600); }

@@ -77,10 +77,20 @@ Hoard — грамматика английского от A1 до C1, кото�
 | Родной язык | Статус |
 |---|---|
 | Русский | Готов |
-| Украинский | В планах |
-| Испанский | В планах |
-| Немецкий | В планах |
-| Польский | В планах |
+| Испанский | Готов |
+| Немецкий | Готов |
+| Польский | Готов |
+
+Интерфейс тоже на родном языке. Его выбирают при первом запуске и меняют в настройках. Один и тот же урок, где ловушка и глосса написаны под каждый язык:
+
+<table>
+  <tr>
+    <td width="33%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/gloss-es-dark.png"><img src="docs/screenshots/gloss-es-light.png" alt="Урок Present Perfect на испанском, с ловушкой для испаноговорящих"></picture><p align="center">Español</p></td>
+    <td width="33%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/gloss-de-dark.png"><img src="docs/screenshots/gloss-de-light.png" alt="Урок Present Perfect на немецком, с ловушкой для немцев"></picture><p align="center">Deutsch</p></td>
+    <td width="33%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/gloss-pl-dark.png"><img src="docs/screenshots/gloss-pl-light.png" alt="Урок Present Perfect на польском, с ловушкой для поляков"></picture><p align="center">Polski</p></td>
+  </tr>
+</table>
+
 
 ## Установка
 

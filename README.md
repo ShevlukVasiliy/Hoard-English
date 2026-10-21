@@ -77,12 +77,20 @@ Theory for A1–B1 is written in your native language, and from B2 on it is in E
 | Native language | Status |
 |---|---|
 | Russian | Ready |
-| Ukrainian | Planned |
-| Spanish | Planned |
-| German | Planned |
-| Polish | Planned |
+| Spanish | Ready |
+| German | Ready |
+| Polish | Ready |
 
-The app interface is in Russian for now. An English interface is coming with the other languages.
+The interface follows the same language. You choose it on first launch and can change it in Settings. The same lesson, with a trap and a margin note written for each language:
+
+<table>
+  <tr>
+    <td width="33%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/gloss-es-dark.png"><img src="docs/screenshots/gloss-es-light.png" alt="The Present Perfect lesson in Spanish, with a trap for Spanish speakers"></picture><p align="center">Español</p></td>
+    <td width="33%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/gloss-de-dark.png"><img src="docs/screenshots/gloss-de-light.png" alt="The Present Perfect lesson in German, with a trap for German speakers"></picture><p align="center">Deutsch</p></td>
+    <td width="33%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/gloss-pl-dark.png"><img src="docs/screenshots/gloss-pl-light.png" alt="The Present Perfect lesson in Polish, with a trap for Polish speakers"></picture><p align="center">Polski</p></td>
+  </tr>
+</table>
+
 
 ## Install
 
