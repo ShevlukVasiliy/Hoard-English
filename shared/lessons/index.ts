@@ -10,6 +10,7 @@ import { EXTRA } from "./extra";
 import { STORIES } from "./stories";
 import { STORY_META } from "./story-meta";
 import { DEEP } from "./deep";
+import { HARD } from "./hard";
 
 export const LESSONS: Lesson[] = [...part3, ...part1, ...part2, ...part4, ...part5, ...part6].map((l) => {
   const story = l.story ?? STORIES[l.id];
@@ -18,7 +19,11 @@ export const LESSONS: Lesson[] = [...part3, ...part1, ...part2, ...part4, ...par
   return {
     ...l,
     theory: l.theory.map((b, i) => ({ ...b, ...deep?.theory?.[i] })),
-    exercises: [...l.exercises, ...(EXTRA[l.id] ?? [])],
+    // сложные: отдельный банк HARD, исправление ошибок и трансформации
+    exercises: [
+      ...[...l.exercises, ...(EXTRA[l.id] ?? [])].map((e) => ({ ...e, hard: e.hard ?? (e.kind === "fix" || e.kind === "transform") })),
+      ...(HARD[l.id] ?? []).map((e) => ({ ...e, hard: true })),
+    ],
     story: story && meta ? { ...story, ...meta, long: deep?.story } : undefined,
   };
 });
@@ -70,6 +75,7 @@ export function validateCatalog(): string[] {
     if (ids.size !== l.exercises.length) errors.push(`${l.id}: повторяющиеся id заданий`);
   }
   for (const id of Object.keys(EXTRA)) if (!byId.has(id)) errors.push(`EXTRA: нет урока ${id}`);
+  for (const id of Object.keys(HARD)) if (!byId.has(id)) errors.push(`HARD: нет урока ${id}`);
   for (const id of Object.keys(DEEP)) if (!byId.has(id)) errors.push(`DEEP: нет урока ${id}`);
   for (const id of Object.keys(STORY_META)) if (!byId.has(id)) errors.push(`STORY_META: нет урока ${id}`);
   for (const b of BLOCKS) for (const id of b.lessonIds) if (!byId.has(id)) errors.push(`${b.id}: нет урока ${id}`);

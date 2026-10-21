@@ -58,6 +58,9 @@ export function useSavedPaint(root: RefObject<HTMLElement | null>, lessonId: str
 
 // Кратко подсвечивает фрагмент ярче и прокручивает к нему (переход из «Заметок»).
 export function flashHighlight(root: HTMLElement, h: Highlight) {
+  // глосса на узком окне свёрнута — раскрываем, иначе фрагмент не виден
+  const details = root.querySelector(`[data-part="${h.part}"]`)?.closest("details");
+  if (details) details.open = true;
   const r = rangeOf(root, h);
   if (!r) return;
   const rect = r.getBoundingClientRect();

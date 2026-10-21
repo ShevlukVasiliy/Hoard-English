@@ -53,11 +53,30 @@ test("блиц: 15 вопросов с выбором; ловушки: 12 зад
   expect(all.every((q) => q.ex.kind === "choice")).toBe(true);
   for (const b of BLOCKS) {
     const bl = blitzSet(EMPTY_PROGRESS, b.id);
-    expect(bl.length, b.id).toBeGreaterThanOrEqual(8); // TODO Stage 14: с ловушками → BLITZ_SIZE
+    expect(bl.length, b.id).toBe(BLITZ_SIZE);
     expect(bl.every((q) => b.lessonIds.includes(q.lessonId) || q.lessonId === `traps:${b.id}`)).toBe(true);
     const tr = trapsTest(b.id);
-    expect(tr.length, b.id).toBeGreaterThanOrEqual(8); // TODO Stage 14: банк ловушек → ровно TRAPS_SIZE
+    expect(tr.length, b.id).toBe(TRAPS_SIZE);
     expect(new Set(tr.map((q) => `${q.lessonId}/${q.ex.id}`)).size).toBe(tr.length);
-    expect(tr.length).toBeLessThanOrEqual(TRAPS_SIZE);
+
   }
+});
+
+test("ловушки и сложные задания: эталон засчитывается, фраза с ошибкой — нет", async () => {
+  const { TRAPS } = await import("./lessons/traps");
+  const { checkAnswer, correctAnswer } = await import("./check");
+  const all = [...Object.values(TRAPS).flat(), ...LESSONS.flatMap((l) => l.exercises.filter((e) => e.hard))];
+  for (const ex of all) {
+    expect(checkAnswer(ex, ex.kind === "choice" ? String(ex.answer) : correctAnswer(ex)), ex.id).toBe(true);
+    if (ex.kind === "fix") expect(checkAnswer(ex, ex.prompt), ex.prompt).toBe(false);
+    if (ex.kind === "choice") {
+      expect(ex.answer).toBeLessThan(ex.options.length);
+      expect(new Set(ex.options).size).toBe(ex.options.length);
+    }
+  }
+  for (const [id, list] of Object.entries(TRAPS)) {
+    expect(BLOCKS.some((b) => b.id === id), id).toBe(true);
+    expect(new Set(list.map((e) => e.id)).size).toBe(list.length);
+  }
+  for (const l of LESSONS) expect(l.exercises.filter((e) => e.hard).length, l.id).toBeGreaterThanOrEqual(6);
 });
