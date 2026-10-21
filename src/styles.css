@@ -156,6 +156,9 @@ input, select {
 /* ── Чтение: теория и истории ─────────────────────────── */
 .reading { font: 18px/1.65 var(--serif); }
 .reading p { margin: 0 0 14px; }
+.md-list { margin: -6px 0 14px; padding-left: 22px; }
+.md-list li { margin-bottom: 4px; }
+.md-list li::marker { color: var(--faded); }
 .reading code { font: 500 0.84em var(--sans); padding: 1px 5px; letter-spacing: 0.005em; }
 .reading h2 { margin-top: 36px; }
 .examples { padding-left: 0; list-style: none; margin: 4px 0 18px; }
@@ -200,9 +203,9 @@ details[open] > summary.gloss-title::before { content: "− "; }
 .lesson-head h1 { font-size: 40px; line-height: 1.1; margin-bottom: 6px; }
 .lesson-head .level { font: 13px var(--sans); color: var(--faded); margin-left: 10px; vertical-align: middle; letter-spacing: 0; }
 
-.steps { list-style: none; padding: 0; display: flex; align-items: center; gap: 10px; margin: 0 0 28px; font-size: 14px; color: color-mix(in srgb, var(--faded) 60%, transparent); }
-.steps li { display: flex; align-items: center; gap: 10px; }
-.steps .sep { flex: 0 0 24px; height: 1px; background: var(--rule); }
+.steps { list-style: none; padding: 0; display: flex; flex-wrap: wrap; align-items: center; margin: 0 0 28px; font-size: 14px; color: color-mix(in srgb, var(--faded) 60%, transparent); }
+.steps li { display: flex; align-items: center; flex: none; }
+.steps li + li::before { content: ""; display: block; width: 24px; height: 1px; margin: 0 10px; background: var(--rule); }
 .steps .done { color: var(--faded); }
 .steps .current { color: var(--ink); font-weight: 600; }
 

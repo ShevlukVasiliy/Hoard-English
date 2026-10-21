@@ -21,7 +21,6 @@ function Steps({ phase }: { phase: Phase }) {
     <ol className="steps" aria-label="Шаги урока">
       {STEPS.map((s, i) => (
         <li key={s.phase} className={i === at ? "current" : i < at ? "done" : undefined} aria-current={i === at ? "step" : undefined}>
-          {i > 0 && <span className="sep" aria-hidden />}
           {s.label}
         </li>
       ))}

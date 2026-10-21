@@ -10,10 +10,14 @@ export async function setAutostart(on: boolean) {
   await (on ? enable() : disable());
 }
 
+// В режиме разработки автозапуск не трогаем: иначе он запомнит путь к отладочной сборке.
+// В собранном приложении включение каждый раз переписывает путь — он мог смениться
+// (например, после переименования приложения).
 export async function syncAutostart(on: boolean) {
-  if (!inTauri) return;
+  if (!inTauri || import.meta.env.DEV) return;
   const { isEnabled } = await import("@tauri-apps/plugin-autostart");
-  if ((await isEnabled()) !== on) await setAutostart(on);
+  if (on) await setAutostart(true);
+  else if (await isEnabled()) await setAutostart(false);
 }
 
 type Profile = { name: string; path: string };

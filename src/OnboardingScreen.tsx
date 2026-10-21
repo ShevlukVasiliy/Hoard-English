@@ -17,13 +17,14 @@ function Preview({ which }: { which: "theoryDepth" | "storyDepth" }) {
   const story = lesson.story!;
   const text = (d: Depth) =>
     which === "theoryDepth"
-      ? d === "long" && block.more ? `${block.text}\n\n${block.more}` : block.text
+      // в «подробно» показываем то, что добавляется, — иначе превью совпадают в начале
+      ? d === "long" && block.more ? block.more : block.text
       : d === "long" && story.long ? story.long : story.text;
   return (
     <div className="preview" role="radiogroup" aria-label={which === "theoryDepth" ? "Подача теории" : "Длина историй"}>
       {(["short", "long"] as const).map((d) => (
         <button key={d} role="radio" aria-checked={settings[which] === d} className={settings[which] === d ? "pick on" : "pick"} onClick={() => setSettings({ ...settings, [which]: d })}>
-          <span className="pick-title">{d === "short" ? "Кратко" : "Подробно"}</span>
+          <span className="pick-title">{d === "short" ? "Кратко" : which === "theoryDepth" ? "Подробно: ещё и это" : "Подробно"}</span>
           <span className="pick-text reading"><Markup text={text(d)} /></span>
         </button>
       ))}
@@ -60,8 +61,7 @@ export function OnboardingScreen() {
       <ol className="steps" aria-label="Шаги настройки">
         {STEPS.map((s, i) => (
           <li key={s} className={i === step ? "current" : i < step ? "done" : undefined} aria-current={i === step ? "step" : undefined}>
-            {i > 0 && <span className="sep" aria-hidden />}
-            {s}
+              {s}
           </li>
         ))}
       </ol>

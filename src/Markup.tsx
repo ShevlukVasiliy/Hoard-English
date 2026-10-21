@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from "react";
 
-// **жирный**, `конструкция`, *курсив*; пустая строка — новый абзац, перенос — <br>.
+// **жирный**, `конструкция`, *курсив*; пустая строка — новый абзац, перенос — <br>, «- » — пункт списка.
 function inline(text: string): ReactNode[] {
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g);
   return parts.map((p, i) => {
@@ -11,19 +11,34 @@ function inline(text: string): ReactNode[] {
   });
 }
 
+// Строки, начинающиеся с «- », собираются в список.
 export function Markup({ text }: { text: string }) {
   return (
     <>
-      {text.split(/\n\s*\n/).map((para, i) => (
-        <p key={i}>
-          {para.split("\n").map((line, j) => (
-            <Fragment key={j}>
-              {j > 0 && <br />}
-              {inline(line)}
-            </Fragment>
-          ))}
-        </p>
-      ))}
+      {text.split(/\n\s*\n/).flatMap((para, i) => {
+        const out: ReactNode[] = [];
+        let lines: string[] = [];
+        let items: string[] = [];
+        const flushLines = () => {
+          if (lines.length) out.push(
+            <p key={`${i}-p${out.length}`}>
+              {lines.map((line, j) => <Fragment key={j}>{j > 0 && <br />}{inline(line)}</Fragment>)}
+            </p>,
+          );
+          lines = [];
+        };
+        const flushItems = () => {
+          if (items.length) out.push(<ul key={`${i}-u${out.length}`} className="md-list">{items.map((it, j) => <li key={j}>{inline(it)}</li>)}</ul>);
+          items = [];
+        };
+        for (const line of para.split("\n")) {
+          if (/^- /.test(line)) { flushLines(); items.push(line.slice(2)); }
+          else { flushItems(); lines.push(line); }
+        }
+        flushLines();
+        flushItems();
+        return out;
+      })}
     </>
   );
 }
