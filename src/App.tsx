@@ -23,6 +23,7 @@ import { Ctx, type AppState, type Route, type SyncStatus } from "./state";
 import { inTauri, loadAnki, loadHighlights, loadJournal, loadProgress, loadSettings, loadSyncConfig, saveAnki, saveHighlights, saveJournal, saveProgress, saveSettings, saveSyncConfig } from "./storage";
 import { addToAnki, flushQueue, syncAutostart } from "./system";
 import { TestScreen } from "./TestScreen";
+import { useUpdateAvailable } from "./update";
 import { WordsScreen } from "./WordsScreen";
 
 // Вкладки; sub — экраны внутри вкладки, при которых она подсвечена.
@@ -60,6 +61,8 @@ export function App() {
   const guard = useRef<string | null>(null);
   const [pending, setPending] = useState<{ message: string; run: () => void } | null>(null);
   const [help, setHelp] = useState(false);
+  const updateAvailable = useUpdateAvailable();
+  const [updateHidden, setUpdateHidden] = useState(false);
   const setLeaveGuard = useCallback((m: string | null) => { guard.current = m; }, []);
 
   // журнал и настройки синхронизации читаются в обработчиках — через ref, чтобы не брать устаревшие
@@ -346,6 +349,13 @@ export function App() {
         {route.name === "notes" && <NotesScreen />}
         {route.name === "onboarding" && <OnboardingScreen />}
       </main>
+      {updateAvailable && !updateHidden && !toastText && (
+        <div className="update-bar" role="status">
+          <span>Вышла новая версия Hoard</span>
+          <button className="small" onClick={() => location.reload()}>Обновить</button>
+          <button className="link small" aria-label="Позже" onClick={() => setUpdateHidden(true)}>Позже</button>
+        </div>
+      )}
       {toastText && <div className="toast" role="status">{toastText}</div>}
       <SwipeNav back={state.back} forward={state.forward} canBack={nav.canBack} canForward={nav.canForward} />
       {help && <ShortcutsHelp onClose={() => setHelp(false)} />}

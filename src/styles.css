@@ -402,6 +402,17 @@ kbd { font: 13px var(--sans); background: var(--raised); border: 1px solid var(-
 .today .story-link { font-size: 22px; }
 .today-text { font-size: 17px; color: var(--ink); margin-bottom: 6px; }
 
+/* Новая версия PWA: та же позиция, что у тоста, но с действием */
+.update-bar {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 30;
+  display: flex; align-items: center; gap: 12px;
+  width: max-content; max-width: calc(100vw - 32px);
+  padding: 8px 10px 8px 16px; border-radius: 8px;
+  background: var(--raised); border: 1px solid var(--rule); font-size: 14px;
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--ink) 14%, transparent);
+}
+.update-bar .link { color: var(--faded); }
+
 /* ── Телефон (PWA) ────────────────────────────────────── */
 /* Цель — 375 pt (iPhone 11 Pro, mini, SE): вырез сверху, полоска «Домой» снизу.
    Шапка остаётся сверху с назад/вперёд и настройками, вкладки — панелью внизу,
@@ -451,7 +462,7 @@ textarea { font: inherit; padding: 7px 10px; border-radius: 7px; border: 1px sol
 
   .leave-bar { top: calc(48px + env(safe-area-inset-top)); padding: 10px 16px; }
   .blitz-timer { top: calc(48px + env(safe-area-inset-top)); }
-  .toast { bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + 12px); }
+  .toast, .update-bar { bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + 12px); }
   .lessons li { gap: 10px; }
   .lessons li > span { white-space: normal; min-width: 0; }
   .days { display: flex; flex-wrap: wrap; gap: 6px; }

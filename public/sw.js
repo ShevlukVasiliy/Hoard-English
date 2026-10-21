@@ -1,7 +1,8 @@
 // Service worker PWA: офлайн-работа после первого открытия.
-// Страница — сначала из сети (чтобы приходили обновления), без сети — из кэша.
-// Файлы сборки с хэшем в имени не меняются — берутся из кэша.
-// Запросы к GitHub (синхронизация) не трогаем.
+// Страница — сначала из сети (перепроверка у сервера, мимо 10-минутного HTTP-кэша
+// GitHub Pages), без сети — из кэша. Файлы сборки с хэшем в имени не меняются —
+// берутся из кэша; после загрузки новой версии файлы старых сборок удаляются.
+// version.json и запросы к GitHub (синхронизация) не трогаем.
 const CACHE = "hoard-v1";
 const SHELL = ["./", "manifest.webmanifest", "icon-192.png", "apple-touch-icon.png"];
 
@@ -22,14 +23,33 @@ const put = (req, res) => {
   return res;
 };
 
+// Удаляет из кэша файлы сборок, которых нет в текущей версии сайта.
+async function prune() {
+  const r = await fetch("version.json", { cache: "no-store" });
+  if (!r.ok) return;
+  const { assets } = await r.json();
+  if (!Array.isArray(assets) || !assets.length) return;
+  const keep = new Set(assets.map((a) => new URL(a, self.registration.scope).href));
+  const cache = await caches.open(CACHE);
+  for (const req of await cache.keys())
+    if (new URL(req.url).pathname.includes("/assets/") && !keep.has(req.url)) await cache.delete(req);
+}
+
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   const url = new URL(req.url);
-  if (req.method !== "GET" || url.origin !== location.origin) return;
+  if (req.method !== "GET" || url.origin !== location.origin || url.pathname.endsWith("/version.json")) return;
 
   if (req.mode === "navigate") {
+    // навигационный запрос нельзя пересоздать с параметрами — запрашиваем по адресу
     e.respondWith(
-      fetch(req).then((res) => put(new Request("./"), res))
+      fetch(req.url, { cache: "no-cache", credentials: "same-origin" })
+        .then((res) => {
+          // запасная копия — только для самого приложения, не для других адресов сайта
+          if (url.href.split(/[?#]/)[0] !== self.registration.scope && !url.pathname.endsWith("/index.html")) return res;
+          e.waitUntil(prune().catch(() => {}));
+          return put(new Request("./"), res);
+        })
         .catch(() => caches.match("./").then((r) => r || Response.error())),
     );
     return;
