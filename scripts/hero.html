@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- Обложка README. Рендерит scripts/screenshots.ts: ?theme=light|dark&lang=en|ru -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --paper: #F7F7F5; --ink: #1E1C29; --faded: #6E6B78; --rule: #E2E1DC; --lapis: #2C47A8; --gilt: #F2DC8E; --gilt-ink: #7A5C0E; }
+  :root[data-theme="dark"] { --paper: #15161B; --ink: #E6E3DA; --faded: #9C99A6; --rule: #2A2B32; --lapis: #93A6F0; --gilt: #4A3B12; --gilt-ink: #E8C766; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1280px; height: 640px; background: var(--paper); color: var(--ink); overflow: hidden; }
+  body { position: relative; font-family: ui-serif, "New York", Georgia, serif; }
+  .text { position: absolute; left: 72px; top: 92px; width: 440px; }
+  .mark { width: 72px; height: 72px; border-radius: 16px; display: block; }
+  h1 { font-size: 88px; line-height: 1; font-weight: 600; letter-spacing: -0.01em; margin-top: 36px; }
+  .line { font-family: system-ui, -apple-system, sans-serif; font-size: 22px; line-height: 1.4; color: var(--ink); margin-top: 20px; }
+  /* глосса на полях, как в уроке: пунктир и мелкий текст */
+  .gloss { margin-top: 44px; padding-left: 18px; border-left: 1px dashed var(--faded); font-size: 18px; line-height: 1.55; color: var(--faded); max-width: 380px; }
+  .gloss i { color: var(--gilt-ink); font-style: italic; }
+  .shots { position: absolute; left: 560px; top: 64px; }
+  .desk { width: 760px; border-radius: 12px; border: 1px solid var(--rule); box-shadow: 0 24px 60px -24px rgba(20, 20, 40, .28); display: block; }
+  .phone { position: absolute; left: 500px; top: 140px; width: 190px; border-radius: 30px; border: 6px solid var(--ink); box-shadow: 0 24px 50px -18px rgba(20, 20, 40, .45); display: block; }
+</style>
+</head>
+<body>
+  <div class="text">
+    <img class="mark" src="../public/icon-512.png" alt="">
+    <h1>Hoard</h1>
+    <p class="line" data-en="English grammar that explains why it works the way it does." data-ru="Грамматика английского, которая объясняет, почему так."></p>
+    <p class="gloss" data-en="<i>hord</i>, Old English: a treasure hoard. Poets called a person’s store of words a <i>word-hord</i>." data-ru="<i>hord</i> — по-древнеанглийски «сокровищница». Запас слов поэты называли <i>word-hord</i>."></p>
+  </div>
+  <div class="shots">
+    <img class="desk" id="desk" alt="">
+    <img class="phone" id="phone" alt="">
+  </div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const theme = q.get("theme") ?? "light", other = theme === "light" ? "dark" : "light", lang = q.get("lang") ?? "en";
+  document.documentElement.dataset.theme = theme;
+  document.querySelectorAll("[data-en]").forEach((el) => { el.innerHTML = el.dataset[lang]; });
+  document.getElementById("desk").src = `../docs/screenshots/gloss-${theme}.png`;
+  document.getElementById("phone").src = `../docs/screenshots/phone-lesson-${other}.png`;
+</script>
+</body>
+</html>
