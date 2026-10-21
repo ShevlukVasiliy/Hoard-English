@@ -1,0 +1,57 @@
+import type { LessonL10n } from "../index";
+
+export const linking: Record<string, LessonL10n> = {
+  "relative-clauses": {
+    theory: [
+      {
+        title: "Qué palabra elegir",
+        text: "`who`: personas: `the woman who lives next door`.\n`which`: cosas y animales: `the book which I bought`.\n`that`: personas y cosas en la lengua hablada: `the car that he drives`.\n`whose`: cuyo: `the man whose car was stolen`.\n`where`: donde: `the town where I grew up`.",
+        more: "`whose` sirve para personas y para cosas: `the house whose roof is red`, la casa cuyo tejado es rojo. Suena formal, igual que *cuyo* en español; al hablar se suele decir `the house with the red roof`.\n\n`where` puede cambiarse por `which … in`: `the town where I grew up` = `the town which I grew up in` = `the town I grew up in`.\n\n`when`: sobre el tiempo: `the day when we met` o simplemente `the day we met`.\n\nEn las explicativas con comas, `which` puede referirse a toda la oración: `He passed the exam, which surprised everyone`, «lo que sorprendió a todos».",
+        why: "Las palabras interrogativas se convierten a menudo en relativos: pasa en muchas lenguas. En español *quien*, *donde*, *cual* hacen los dos papeles. En inglés `who` y `which` recorrieron ese camino en el inglés medio, en buena parte por influencia del latín *qui* y del francés.",
+        trap: "El español *que* vale para todo: «el hombre que…», «la casa que…». En inglés hay que elegir según sea persona o cosa: the man who…, the house which… Y «lo que» para toda la frase es which, no «what»: He was late, which annoyed me.",
+      },
+      {
+        title: "¿Se puede omitir?",
+        text: "Si `who/which/that` es complemento (detrás viene otro sujeto), se puede quitar: `the film (that) we watched`.\n\nSi es sujeto, no: `the man who called you`.\n\n**Las explicativas con comas** añaden información sobre algo ya claro: `My brother, who lives in Bilbao, is a doctor.` En ellas no puede ir `that` ni se puede omitir la palabra.",
+        more: "La preposición en estas oraciones:\n- en la conversación, al final: `the man I spoke to`, `the music I listen to`;\n- en estilo formal, al principio, y entonces solo `whom` o `which`: `the man to whom I spoke`.\n\nAl hispanohablante la preposición final le parece rarísima, porque en español siempre va delante: «la persona con la que hablé». Pero en inglés lo natural es `the person I spoke to`.\n\n«No se puede terminar una oración con preposición» es otra regla inventada en los siglos XVII–XVIII, a imitación del latín. Los nativos terminan con preposición constantemente: `What are you talking about?` `Who did you go with?`\n\nOraciones reducidas: `The man sitting by the window is my uncle` = `who is sitting`. `The car stolen yesterday was found` = `which was stolen`.",
+      },
+    ],
+    explain: {
+      "6": "Con comas, which, no that.",
+      "11": "Sobra it: su papel ya lo hace that.",
+      "h1": "Explicativa con comas: no vale that ni se puede omitir.",
+      "h2": "which se refiere a toda la oración anterior.",
+    },
+    story: {
+      title: "that es más antiguo que who",
+      text: "Parece que `who` y `which` son las palabras principales y que `that` es un sustituto coloquial. Históricamente es al revés.\n\nEn inglés antiguo el relativo se expresaba con palabras como `þe` y `þæt`. `that` en este papel es la opción más antigua. `which` y `who` eran interrogativos («¿cuál?», «¿quién?») y se volvieron relativos solo en el inglés medio, en buena parte a imitación del latín y del francés.\n\nY `whom` está desapareciendo: en la conversación casi todo el mundo dice `the man who I met`, y `whom` suena formal.",
+      long: "Parece que `who` y `which` son las palabras principales para «que, el cual», y que `that` es un sustituto coloquial. Históricamente es todo lo contrario: `that` es la más antigua, y `who`, la más joven.\n\nEn inglés antiguo, para «que» se usaba la partícula invariable `þe` o el demostrativo `se / sēo / þæt`, el mismo del que salieron `the` y `that`. Literalmente «el hombre, ese vino», es decir, «el hombre que vino». Al final del periodo antiguo `þæt` se convirtió en el enlace principal y hacia el siglo XIII casi había desplazado a los demás. Funcionaba como el *que* español: una palabra para todo.\n\n`which` y `who` fueron mucho tiempo solo interrogativos: «¿cuál?» y «¿quién?». En el inglés medio `which` empezó a aparecer como relativo, en buena parte por influencia del latín *qui* y del francés *qui / lequel*. La gente culta que escribía en latín y francés trasladaba esa costumbre al inglés. `who` como relativo apareció aún más tarde, sobre todo en los siglos XV y XVI.\n\nY aquí están las huellas de esa historia. En el padrenuestro de la Biblia del rey Jacobo, de 1611: `Our Father, which art in heaven`, «Padre nuestro, que estás en los cielos». ¡Sobre Dios, `which`, no `who`! En aquella época `which` todavía se usaba tranquilamente para personas, como el español *el cual*. La división «who para personas, which para cosas» se fijó solo hacia el siglo XVIII. Las versiones modernas de la oración dicen `who art in heaven`.\n\n`whom` es la forma de acusativo de `who`, «a quien». Es uno de los últimos casos del inglés. Ahora está desapareciendo: en la conversación casi todo el mundo dice `the man who I met`, y `whom` suena formal o anticuado. Se mantiene sobre todo detrás de preposiciones: `to whom it may concern`, «a quien corresponda», como empiezan las cartas oficiales.\n\nY un último detalle. En el inglés americano hay una regla: `that` para las especificativas (sin comas), `which` solo para las explicativas (con comas). La promovió el mismo Henry Fowler, autor del diccionario de uso del inglés, y los editores estadounidenses la adoptaron. En el inglés británico `the book which I bought` sin comas es totalmente normal.",
+      takeaway: "Las palabras interrogativas se convirtieron en enlaces entre oraciones, como en español quien, donde, cual.",
+      question: "¿Qué palabra es más antigua como relativo: that o who?",
+    },
+  },
+  "question-tags": {
+    theory: [
+      {
+        title: "Cómo se forman",
+        text: "La coletilla repite el auxiliar con el signo contrario:\n\n• afirmación → coletilla negativa: `It's cold, isn't it?`\n• negación → coletilla positiva: `You don't smoke, do you?`\n\nSi no hay auxiliar, usamos `do/does/did`: `She works here, doesn't she?` `They left, didn't they?`",
+        more: "La coletilla repite el tiempo y el auxiliar de la parte principal:\n- `You've seen it, haven't you?`\n- `She can swim, can't she?`\n- `He'll come, won't he?`\n- `They were late, weren't they?`\n\nEl pronombre de la coletilla sustituye al sujeto: `Your sister lives in Paris, doesn't she?` `This is yours, isn't it?` (con `this/that`, `it`), `Everyone was there, weren't they?` (con `everyone`, `they`).\n\nLa respuesta a la coletilla va según el sentido, no según la forma: `You don't smoke, do you? — No, I don't` (no fumo). En español se puede decir «Sí, no fumo»; en inglés eso no funciona.",
+        why: "Las coletillas son preguntas abreviadas. `isn't it` es `is it not`, reordenado y comprimido. En los siglos XVII y XVIII se decía completo: `It is cold, is it not?`, y así se oye todavía en discursos solemnes.",
+        trap: "En español hay coletillas universales: «¿verdad?», «¿no?». En inglés la coletilla cambia cada vez: no se puede añadir isn't it a todo. Y la respuesta: «You don't smoke, do you?» — «No» significa «no fumo», no «no, te equivocas».",
+      },
+      {
+        title: "Casos especiales",
+        text: "`I am` → `aren't I?`: `I'm late, aren't I?`\n`Let's` → `shall we?`: `Let's go, shall we?`\nImperativo → `will you?`: `Close the door, will you?`\n`There is` → `isn't there?`\n\nPalabras como `never, nobody, nothing` vuelven negativa la frase: `She never calls, does she?`\n\nEntonación descendente: esperamos que nos den la razón; ascendente: preguntamos de verdad.",
+        more: "La coletilla puede llevar el mismo signo que la parte principal: `So you're leaving, are you?` No es una pregunta, sino sorpresa, una deducción o incluso una amenaza: «Así que te vas, ¿eh?»\n\nEn el imperativo, la coletilla cambia la cortesía:\n- `Help me, will you?`: una petición amistosa;\n- `Help me, would you?`: más suave;\n- `Don't be late, will you?`: después de un imperativo negativo, solo `will you`.\n\n`I think` e `I'm sure` no deciden la coletilla: la decide la segunda parte: `I think it's going to rain, isn't it?`",
+      },
+    ],
+    explain: { "h1": "nobody es negativo: coletilla positiva; pronombre they." },
+    story: {
+      title: "innit, eh y right",
+      text: "Las coletillas estándar son complicadas, así que el inglés vivo inventó sustitutos universales.\n\nEn Londres se dice `innit`, un `isn't it` comprimido, con cualquier frase: `You're coming, innit?` A los canadienses se les reconoce por `eh`: `Nice day, eh?` Los estadounidenses suelen añadir `right?`.\n\nEn el inglés estándar se mantienen las coletillas completas. Pero si oyes `innit` en una serie británica, que sepas: es el mismo «¿no?» que en español.",
+      long: "Las coletillas estándar del inglés son un sistema complicado: hay que encontrar el auxiliar, cambiar el signo, poner el pronombre correcto. No es raro que el habla viva haya inventado atajos: coletillas universales, iguales para cualquier frase. Igual que el español, que se arregla con «¿no?» y «¿verdad?».\n\n**Londres: `innit`.** Un `isn't it` comprimido, pero funciona con cualquier frase: `You're coming, innit?`, `He's got a car, innit?`, `We went there yesterday, innit?` Está muy extendido entre los jóvenes de los barrios multiculturales de Londres. Muchos lo consideran un error, pero los lingüistas ven en él un paso natural: de un sistema complicado nace una sola palabra cómoda.\n\n**Canadá: `eh`.** `Nice day, eh?`, `It's cold out there, eh?` Suena tan característico que en el extranjero se bromea con que a los canadienses se les reconoce por él.\n\n**Estados Unidos: `right?`.** `You're coming tomorrow, right?` Es simplemente «¿verdad?», y vale para cualquier cosa.\n\n**India: `isn't it?`** `You are coming, isn't it?`: una coletilla invariable para cualquier frase, como el español «¿no?».\n\n¿De dónde salieron las coletillas? Son antiguas preguntas completas. En los siglos XVII y XVIII se decía `It is cold, is it not?` Después `not` se pegó al verbo y se abrevió: `is it not` → `isn't it`.\n\nUn misterio aparte es `aren't I`. ¿Por qué `I'm late, aren't I?`, si `I aren't` no existe? La coletilla lógica sería `amn't I`, y en Irlanda y Escocia todavía se oye. En inglés, en cambio, `amn't` se simplificó en `an't`. En la pronunciación del sur de Inglaterra la `r` después de vocal no suena, así que `an't` y `aren't` se pronuncian igual: `/ɑːnt/`. Cuando se empezó a escribir esa palabra, se eligió la grafía conocida, `aren't`. Así apareció el gramaticalmente «imposible» `aren't I`.\n\nY `an't` tuvo otro destino: se convirtió en el famoso `ain't`, la negación universal en lugar de `am not, isn't, aren't, hasn't, haven't`. En el siglo XVIII `ain't` lo decían hasta los aristócratas, pero en el XIX se declaró vulgar. Hoy se oye en canciones y en el habla: `It ain't over till it's over`, «esto no se acaba hasta que se acaba».",
+      takeaway: "En la conversación, las reglas complicadas a menudo se simplifican en una sola palabra.",
+      question: "¿Qué son innit, eh y right en el inglés hablado?",
+    },
+  },
+};
