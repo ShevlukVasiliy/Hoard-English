@@ -8,6 +8,7 @@ use tauri::AppHandle;
 use tauri_plugin_notification::NotificationExt;
 
 use crate::data::data_dir;
+use crate::i18n::{self, Lang};
 
 #[derive(Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -21,24 +22,12 @@ fn read_json(name: &str) -> Option<Value> {
     serde_json::from_str(&s).ok()
 }
 
-fn plural(n: usize, one: &str, few: &str, many: &str) -> String {
-    let (m10, m100) = (n % 10, n % 100);
-    let w = if m10 == 1 && m100 != 11 {
-        one
-    } else if (2..=4).contains(&m10) && !(12..=14).contains(&m100) {
-        few
-    } else {
-        many
-    };
-    format!("{n} {w}")
-}
-
 fn day(d: chrono::DateTime<Local>) -> String {
     d.format("%Y-%m-%d").to_string()
 }
 
 // Текст по ситуации: занятия сегодня, ошибки на повтор, следующий урок, остаток блока.
-pub fn message(progress: &Value, now: chrono::DateTime<Local>) -> String {
+pub fn message(progress: &Value, now: chrono::DateTime<Local>, lang: Lang) -> String {
     let now_utc = now.with_timezone(&chrono::Utc).to_rfc3339();
     let today = day(now);
     let due = progress["reviews"]
@@ -56,21 +45,21 @@ pub fn message(progress: &Value, now: chrono::DateTime<Local>) -> String {
 
     let mut parts = vec![];
     if due > 0 {
-        parts.push(format!("Накопилось {} на повтор.", plural(due, "ошибка", "ошибки", "ошибок")));
+        parts.push(i18n::due(lang, due));
     }
     if !studied_today {
         match next {
-            Some(t) => parts.push(format!("Следующий урок — «{t}».")),
-            None => parts.push("Сегодня ещё не было занятий.".to_string()),
+            Some(t) => parts.push(i18n::next_lesson(lang, t)),
+            None => parts.push(i18n::not_studied(lang).to_string()),
         }
     }
     if (1..=2).contains(&left) {
         if let Some(t) = block["title"].as_str() {
-            parts.push(format!("До конца блока «{t}» — {}.", plural(left, "урок", "урока", "уроков")));
+            parts.push(i18n::block_left(lang, t, left));
         }
     }
     if parts.is_empty() {
-        parts.push("Сегодня уже позанимался. Может, блиц на минуту?".to_string());
+        parts.push(i18n::all_done(lang).to_string());
     }
     parts.join(" ")
 }
@@ -106,7 +95,7 @@ fn tick(app: &AppHandle) -> Result<(), String> {
         return Ok(());
     }
     let progress = read_json("progress.json").unwrap_or(Value::Null);
-    notify(app, &message(&progress, now))?;
+    notify(app, &message(&progress, now, i18n::current()))?;
     state.last_sent_date = Some(today);
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     fs::write(&path, serde_json::to_string_pretty(&state).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
@@ -116,7 +105,7 @@ fn tick(app: &AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub fn test_reminder(app: AppHandle) -> Result<(), String> {
     let progress = read_json("progress.json").unwrap_or(Value::Null);
-    notify(&app, &message(&progress, Local::now()))
+    notify(&app, &message(&progress, Local::now(), i18n::current()))
 }
 
 pub fn spawn(app: AppHandle) {
@@ -138,14 +127,14 @@ mod tests {
     fn message_by_situation() {
         let now = Local.with_ymd_and_hms(2026, 10, 21, 12, 0, 0).unwrap();
         let empty = serde_json::json!({ "reviews": [], "activity": [] });
-        assert_eq!(message(&empty, now), "Сегодня ещё не было занятий.");
+        assert_eq!(message(&empty, now, Lang::Ru), "Сегодня ещё не было занятий.");
         let next = serde_json::json!({ "reviews": [], "activity": [], "nextLesson": "Past Perfect" });
-        assert_eq!(message(&next, now), "Следующий урок — «Past Perfect».");
+        assert_eq!(message(&next, now, Lang::Ru), "Следующий урок — «Past Perfect».");
         let busy = serde_json::json!({
             "reviews": [{ "dueAt": "2026-10-20T00:00:00Z" }, { "dueAt": "2026-10-19T00:00:00Z" }, { "dueAt": "2030-01-01T00:00:00Z" }],
             "activity": [now.with_timezone(&chrono::Utc).to_rfc3339()],
             "nextBlock": { "title": "Perfect", "lessonsLeft": 1 }
         });
-        assert_eq!(message(&busy, now), "Накопилось 2 ошибки на повтор. До конца блока «Perfect» — 1 урок.");
+        assert_eq!(message(&busy, now, Lang::Ru), "Накопилось 2 ошибки на повтор. До конца блока «Perfect» — 1 урок.");
     }
 }

@@ -39,7 +39,7 @@ fn anki_root() -> Result<PathBuf, String> {
 pub fn anki_profiles() -> Result<Vec<Profile>, String> {
     let root = anki_root()?;
     let mut out = vec![];
-    for entry in fs::read_dir(&root).map_err(|e| format!("Anki не найден в {}: {e}", root.display()))? {
+    for entry in fs::read_dir(&root).map_err(|e| crate::i18n::anki_not_found(crate::i18n::current(), &root.display().to_string(), &e.to_string()))? {
         let dir = entry.map_err(|e| e.to_string())?.path();
         let col = dir.join("collection.anki2");
         if col.is_file() {
@@ -112,7 +112,7 @@ pub fn anki_words(path: String, deck: String) -> Result<Vec<Word>, String> {
         .map(|(id, _)| id)
         .collect();
     if ids.is_empty() {
-        return Err(format!("колода «{deck}» не найдена"));
+        return Err(crate::i18n::deck_not_found(crate::i18n::current(), &deck));
     }
     let list = ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",");
     let sql = format!(
@@ -141,7 +141,7 @@ pub fn anki_words(path: String, deck: String) -> Result<Vec<Word>, String> {
 // Минимальный HTTP-клиент для AnkiConnect на 127.0.0.1:8765.
 fn anki_connect(body: &serde_json::Value) -> Result<serde_json::Value, String> {
     let addr = "127.0.0.1:8765".parse().map_err(|e: std::net::AddrParseError| e.to_string())?;
-    let mut s = TcpStream::connect_timeout(&addr, Duration::from_secs(2)).map_err(|_| "Anki закрыт или AnkiConnect не установлен".to_string())?;
+    let mut s = TcpStream::connect_timeout(&addr, Duration::from_secs(2)).map_err(|_| crate::i18n::anki_closed(crate::i18n::current()).to_string())?;
     s.set_read_timeout(Some(Duration::from_secs(10))).map_err(|e| e.to_string())?;
     let payload = body.to_string();
     let req = format!(
