@@ -34,7 +34,7 @@ export function recordAnswers(p: Progress, answers: TopicAnswer[], now = new Dat
   return { ...p, topics, reviews, activity: [...p.activity, now] };
 }
 
-export function recordLesson(p: Progress, lesson: Lesson, answers: Answer[], now = new Date().toISOString()): Progress {
+export function recordLesson(p: Progress, lesson: Pick<Lesson, "id" | "topic">, answers: Answer[], now = new Date().toISOString()): Progress {
   const score = answers.filter((a) => a.correct).length;
   const prev = p.lessons[lesson.id];
   const next = recordAnswers(p, answers.map((a) => ({ ...a, lessonId: lesson.id, topic: lesson.topic })), now);

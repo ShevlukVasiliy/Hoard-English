@@ -1,4 +1,6 @@
 import { createContext, useContext } from "react";
+import type { EventBody, JournalEvent } from "../shared/journal";
+import type { SyncConfig, WordsSnapshot } from "../shared/sync";
 import type { AnkiCache, Highlight, HighlightsFile, Lesson, Progress, Settings } from "../shared/types";
 
 export type Route =
@@ -18,15 +20,27 @@ export type Route =
   | { name: "settings" }
   | { name: "onboarding" };
 
+export type SyncStatus =
+  | { state: "idle" | "syncing" }
+  | { state: "ok"; at: string }
+  | { state: "offline" | "error"; message: string };
+
 export type AppState = {
+  // прогресс, заметки и очередь Anki вычисляются из журнала действий
   progress: Progress;
   settings: Settings;
   anki: AnkiCache;
   highlights: HighlightsFile;
-  setProgress: (p: Progress) => void;
+  // записать действие в журнал; возвращает событие с id и временем
+  record: (e: EventBody) => JournalEvent;
   setSettings: (s: Settings) => void;
-  setAnki: (a: AnkiCache) => void;
-  setHighlights: (h: HighlightsFile) => void;
+  // словарь колоды, прочитанный из Anki
+  setWords: (w: WordsSnapshot) => void;
+  // отправить очередь в Anki (только на Mac); сколько ушло
+  flushAnki: () => Promise<number>;
+  // слово в Anki: сразу или в очередь
+  queueWord: (front: string, back: string) => Promise<"sent" | "queued">;
+  sync: { config: SyncConfig; status: SyncStatus; setConfig: (c: SyncConfig) => void; run: () => Promise<void> };
   // отправка в Anki; если Anki закрыт — в очередь
   sendNoteToAnki: (h: Highlight) => void;
   sendStoriesToAnki: (lessons: Lesson[]) => void;

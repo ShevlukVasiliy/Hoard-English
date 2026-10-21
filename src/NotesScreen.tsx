@@ -1,4 +1,4 @@
-import { partOrder, removeHighlight } from "../shared/highlights";
+import { partOrder } from "../shared/highlights";
 import { LESSONS } from "../shared/lessons";
 import type { Highlight } from "../shared/types";
 import { NOTES_DECK } from "../shared/types";
@@ -7,7 +7,7 @@ import { useApp } from "./state";
 const fmt = (iso: string) => new Date(iso).toLocaleDateString("ru", { day: "numeric", month: "long" });
 
 export function NotesScreen() {
-  const { highlights, setHighlights, sendNoteToAnki, go } = useApp();
+  const { highlights, record, sendNoteToAnki, go } = useApp();
   const items = highlights.items;
   const fresh = items.filter((h) => !h.ankiAt);
   // уроки в порядке курса, фрагменты — по месту в тексте
@@ -46,7 +46,7 @@ export function NotesScreen() {
                 <span className="muted">{fmt(h.createdAt)}{h.part === "story" ? ", из истории" : h.part.startsWith("why") ? ", «Почему так?»" : ""}</span>
                 <button className="link" onClick={() => open(h)}>Открыть в {h.part === "story" ? "истории" : "уроке"}</button>
                 {h.ankiAt ? <span className="gilt">в Anki</span> : <button className="link" onClick={() => sendNoteToAnki(h)}>В Anki</button>}
-                <button className="link danger" onClick={() => setHighlights({ items: removeHighlight(items, h.id) })}>Убрать</button>
+                <button className="link danger" onClick={() => record({ t: "unhighlight", noteId: h.id })}>Убрать</button>
               </figcaption>
             </figure>
           ))}

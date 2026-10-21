@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { practiceSet } from "../shared/practice";
-import { recordLesson } from "../shared/progress";
 import type { Depth, Lesson, Story } from "../shared/types";
 import { flashHighlight, SelectionMenu, useSavedPaint } from "./Highlights";
 import { Markup } from "./Markup";
@@ -60,7 +59,7 @@ export function StoryBody({ story }: { story: Story }) {
 }
 
 export function LessonScreen({ lesson, focus }: { lesson: Lesson; focus?: string }) {
-  const { progress, settings, setProgress, go, setLeaveGuard, highlights } = useApp();
+  const { progress, settings, record, go, setLeaveGuard, highlights } = useApp();
   const [phase, setPhase] = useState<Phase>("theory");
   // выборка фиксируется на входе в урок
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,7 +84,7 @@ export function LessonScreen({ lesson, focus }: { lesson: Lesson; focus?: string
 
   const finish = (all: QuizAnswer[]) => {
     setAnswers(all);
-    setProgress(recordLesson(progress, lesson, all.map((a, i) => ({ ...a, exerciseId: tasks[i]!.id }))));
+    record({ t: "lesson", lessonId: lesson.id, topic: lesson.topic, answers: all.map((a, i) => ({ exerciseId: tasks[i]!.id, correct: a.correct, given: a.given })) });
     setPhase("result");
     window.scrollTo(0, 0);
   };

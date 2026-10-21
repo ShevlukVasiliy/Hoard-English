@@ -5,6 +5,7 @@ import { useApp } from "./state";
 import { inTauri } from "./storage";
 import { DepthChoice, ReminderFields } from "./SettingsFields";
 import { setAutostart } from "./system";
+import { SyncSection } from "./SyncSection";
 
 export function SettingsScreen() {
   const { settings: s, setSettings, progress, go } = useApp();
@@ -34,7 +35,9 @@ export function SettingsScreen() {
         <DepthChoice which="storyDepth" label="Истории про язык" />
       </section>
 
-      <section>
+      <SyncSection />
+
+      {inTauri && <section>
         <h2>Напоминание</h2>
         <ReminderFields />
         <label className="check">
@@ -49,9 +52,9 @@ export function SettingsScreen() {
           />
           Запускать при входе в систему (окно не открывается, приложение ждёт в трее)
         </label>
-      </section>
+      </section>}
 
-      <section>
+      {inTauri && <section>
         <h2>Anki</h2>
         <label className="field">
           Колода
@@ -61,7 +64,7 @@ export function SettingsScreen() {
           Путь к collection.anki2 <span className="muted small">пусто — найти автоматически</span>
           <input value={s.ankiPath ?? ""} placeholder="~/Library/Application Support/Anki2/…/collection.anki2" onChange={(e) => set({ ankiPath: e.target.value || undefined })} />
         </label>
-      </section>
+      </section>}
 
       <section>
         <h2>Оформление</h2>
@@ -76,7 +79,7 @@ export function SettingsScreen() {
 
       <section>
         <h2>Данные</h2>
-        <p className="muted">Всё хранится в ~/.eng-teacher/ на этом компьютере.</p>
+        <p className="muted">{inTauri ? "Всё хранится в ~/.eng-teacher/ на этом компьютере." : "Всё хранится в браузере на этом устройстве. Добавьте Hoard на экран «Домой», чтобы iOS не удаляла данные."}</p>
         <button className="ghost" onClick={exportProgress}>Экспортировать прогресс в JSON</button>
         {note && <p className="muted">{note}</p>}
         <p><button className="link" onClick={() => go({ name: "onboarding" })}>Пройти первичную настройку заново</button></p>

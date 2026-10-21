@@ -1,4 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { Journal } from "../shared/journal";
+import type { SyncConfig } from "../shared/sync";
 import type { AnkiCache, HighlightsFile, Progress, Settings } from "../shared/types";
 import { DEFAULT_SETTINGS, EMPTY_PROGRESS } from "../shared/types";
 
@@ -41,3 +43,12 @@ export const EMPTY_ANKI: AnkiCache = { syncedAt: "", deck: "", words: [], queue:
 export const loadAnki = () => readJson<AnkiCache>("anki-words.json", EMPTY_ANKI);
 export const saveAnki = (a: AnkiCache) => write("anki-words.json", JSON.stringify(a, null, 2));
 
+
+// Журнал действий: источник правды для прогресса, заметок и очереди Anki (shared/journal.ts).
+// progress.json и highlights.json вычисляются из него и пишутся для фонового напоминания и как копия.
+export const loadJournal = async (): Promise<Journal | null> => { const raw = await read("events.json"); return raw ? (JSON.parse(raw) as Journal) : null; };
+export const saveJournal = (j: Journal) => write("events.json", JSON.stringify(j));
+
+// Настройки синхронизации этого устройства: токен, гист, пароль. В гист не уходят.
+export const loadSyncConfig = async (): Promise<SyncConfig | null> => { const raw = await read("sync.json"); return raw ? (JSON.parse(raw) as SyncConfig) : null; };
+export const saveSyncConfig = (c: SyncConfig) => write("sync.json", JSON.stringify(c, null, 2));

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useState, type RefObject } from "react";
-import { addHighlight, locate, removeHighlight, trimSpan } from "../shared/highlights";
+import { addHighlight, locate, trimSpan } from "../shared/highlights";
 import type { Highlight } from "../shared/types";
 import { setHighlight } from "./selection";
 import { useApp } from "./state";
+import { inTauri } from "./storage";
 
 // Сохранённые фрагменты в уроке и на странице истории.
 // Части текста помечены data-part ("theory:0", "story", "why:1");
@@ -76,7 +77,7 @@ type Menu =
 
 // Плашка над выделением: «Сохранить ⌘S»; над сохранённым — «Убрать · В Anki».
 export function SelectionMenu({ root, lessonId }: { root: RefObject<HTMLElement | null>; lessonId: string }) {
-  const { highlights, setHighlights, sendNoteToAnki } = useApp();
+  const { highlights, record, sendNoteToAnki } = useApp();
   const [menu, setMenu] = useState<Menu | null>(null);
 
   // выделение внутри одной части этого экрана; конец обрезается по границе части
@@ -97,14 +98,15 @@ export function SelectionMenu({ root, lessonId }: { root: RefObject<HTMLElement 
   }, [root]);
 
   const save = useCallback((m: Extract<Menu, { kind: "save" }>) => {
-    const { items } = addHighlight(highlights.items, {
+    const { items, added } = addHighlight(highlights.items, {
       lessonId, part: m.part.dataset.part!, start: m.start, end: m.end, partText: m.part.textContent ?? "",
     });
-    setHighlights({ items });
+    const kept = new Set(items.map((h) => h.id));
+    record({ t: "highlight", item: added, replaces: highlights.items.filter((h) => !kept.has(h.id)).map((h) => h.id) });
     document.getSelection()?.removeAllRanges();
     setMenu({ kind: "done", x: m.x, y: m.y });
     setTimeout(() => setMenu((cur) => (cur?.kind === "done" ? null : cur)), 1100);
-  }, [highlights, lessonId, setHighlights]);
+  }, [highlights, lessonId, record]);
 
   useEffect(() => {
     const onUp = (e: MouseEvent) => {
@@ -129,20 +131,33 @@ export function SelectionMenu({ root, lessonId }: { root: RefObject<HTMLElement 
         if (sel) { e.preventDefault(); save(sel); }
       }
     };
+    // касание: выделение долгим нажатием не заканчивается mouseup — ждём, пока ручки выделения замрут
+    let still: ReturnType<typeof setTimeout> | undefined;
+    const onSelection = () => {
+      clearTimeout(still);
+      still = setTimeout(() => { const sel = readSelection(); if (sel) setMenu(sel); }, 450);
+    };
+    const touch = matchMedia("(pointer: coarse)").matches;
     document.addEventListener("mouseup", onUp);
     document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("mouseup", onUp); document.removeEventListener("keydown", onKey); };
+    if (touch) document.addEventListener("selectionchange", onSelection);
+    return () => {
+      clearTimeout(still);
+      document.removeEventListener("mouseup", onUp);
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("selectionchange", onSelection);
+    };
   }, [highlights, lessonId, readSelection, root, save]);
 
   if (!menu) return null;
   const style = { left: Math.max(12, Math.min(menu.x, window.innerWidth - 12)), top: menu.y };
   return (
     <div className="hl-menu" style={style} role="toolbar" onMouseDown={(e) => e.preventDefault()}>
-      {menu.kind === "save" && <button onClick={() => save(menu)}>Сохранить <span className="kbd">⌘S</span></button>}
+      {menu.kind === "save" && <button onClick={() => save(menu)}>Сохранить {inTauri && <span className="kbd">⌘S</span>}</button>}
       {menu.kind === "done" && <span className="hl-done">Сохранено</span>}
       {menu.kind === "saved" && (
         <>
-          <button onClick={() => { setHighlights({ items: removeHighlight(highlights.items, menu.h.id) }); setMenu(null); }}>Убрать</button>
+          <button onClick={() => { record({ t: "unhighlight", noteId: menu.h.id }); setMenu(null); }}>Убрать</button>
           <span className="hl-sep" aria-hidden />
           {menu.h.ankiAt
             ? <span className="hl-done">В Anki</span>

@@ -1,7 +1,7 @@
 import { BLOCKS, LESSONS, blockLessons, getLesson } from "./lessons";
 import { TRAPS } from "./lessons/traps";
 import { PLACEMENT_BANK, PLACEMENT_LESSON } from "./placement";
-import { recordAnswers } from "./progress";
+import { recordAnswers, type TopicAnswer } from "./progress";
 import { sample, shuffle } from "./random";
 import { blockPassed, levelIndex } from "./stats";
 import type { Exercise, Level, Progress, TestKind, TestResult } from "./types";
@@ -119,7 +119,7 @@ export function estimateLevel(answers: Answered[]): Level {
   return result;
 }
 
-export function byTopic(answers: Answered[]): TestResult["byTopic"] {
+export function byTopic(answers: Pick<Answered, "topic" | "correct">[]): TestResult["byTopic"] {
   const out: TestResult["byTopic"] = {};
   for (const a of answers) {
     const t = (out[a.topic] ??= { correct: 0, total: 0 });
@@ -201,10 +201,25 @@ export function monthlyDue(p: Progress, now = Date.now()): boolean {
 
 // Записывает результат теста: история тестов, освоенность тем, ошибки на повтор, пересчёт уровня.
 export function recordTest(p: Progress, kind: TestKind, answers: Answered[], blockId?: string, now = new Date().toISOString(), ms?: number): Progress {
-  const correct = answers.filter((a) => a.correct).length;
+  return applyTest(p, testInput(kind, answers, blockId, ms), now);
+}
+
+// Тест без вопросов из банка: только то, что нужно для записи. Так он хранится в журнале,
+// и пересчёт не зависит от того, остались ли эти вопросы в контенте.
+export type TestInput = { kind: TestKind; blockId?: string; ms?: number; total?: number; level?: Level; answers: TopicAnswer[] };
+
+export function testInput(kind: TestKind, answers: Answered[], blockId?: string, ms?: number, total?: number): TestInput {
   const level = kind === "placement" || kind === "monthly" ? estimateLevel(answers) : undefined;
-  const result: TestResult = { kind, at: now, blockId, correct, total: answers.length, level, byTopic: byTopic(answers), ms };
-  let next = recordAnswers(p, answers.map((a) => ({ lessonId: a.lessonId, topic: a.topic, exerciseId: a.ex.id, correct: a.correct, given: a.given })), now);
+  return {
+    kind, blockId, ms, total, level,
+    answers: answers.map((a) => ({ lessonId: a.lessonId, topic: a.topic, exerciseId: a.ex.id, correct: a.correct, given: a.given })),
+  };
+}
+
+export function applyTest(p: Progress, t: TestInput, now = new Date().toISOString()): Progress {
+  const correct = t.answers.filter((a) => a.correct).length;
+  const result: TestResult = { kind: t.kind, at: now, blockId: t.blockId, correct, total: t.total ?? t.answers.length, level: t.level, byTopic: byTopic(t.answers), ms: t.ms };
+  let next = recordAnswers(p, t.answers, now);
   next = { ...next, tests: [...next.tests, result] };
   return { ...next, level: recomputeLevel(next, now) };
 }

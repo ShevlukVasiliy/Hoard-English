@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getLesson } from "../shared/lessons";
 import { dueReviews } from "../shared/progress";
 import { withReminderHint } from "../shared/stats";
-import type { AnkiCache, AnkiQueueItem, HighlightsFile, Progress, Settings } from "../shared/types";
-import { DEFAULT_SETTINGS, EMPTY_PROGRESS, NOTES_DECK, STORIES_DECK } from "../shared/types";
+import { derive, mergeEvents, nextId, seedEvents, SHARED_SETTINGS, type EventBody, type JournalEvent } from "../shared/journal";
+import { newDeviceId, sync, SyncError, type SyncConfig, type WordsSnapshot } from "../shared/sync";
+import type { AnkiCache, AnkiQueueItem, HighlightsFile, Settings } from "../shared/types";
+import { DEFAULT_SETTINGS, NOTES_DECK, STORIES_DECK } from "../shared/types";
 import { BlitzScreen } from "./BlitzScreen";
 import { FinalScreen } from "./FinalScreen";
 import { useHistory } from "./history";
@@ -17,9 +19,9 @@ import { MapScreen } from "./MapScreen";
 import { ReviewScreen } from "./ReviewScreen";
 import { installSelectionPaint } from "./selection";
 import { SettingsScreen } from "./SettingsScreen";
-import { Ctx, type AppState, type Route } from "./state";
-import { EMPTY_ANKI, inTauri, loadAnki, loadHighlights, loadProgress, loadSettings, saveAnki, saveHighlights, saveProgress, saveSettings } from "./storage";
-import { addToAnki, syncAutostart } from "./system";
+import { Ctx, type AppState, type Route, type SyncStatus } from "./state";
+import { inTauri, loadAnki, loadHighlights, loadJournal, loadProgress, loadSettings, loadSyncConfig, saveAnki, saveHighlights, saveJournal, saveProgress, saveSettings, saveSyncConfig } from "./storage";
+import { addToAnki, flushQueue, syncAutostart } from "./system";
 import { TestScreen } from "./TestScreen";
 import { WordsScreen } from "./WordsScreen";
 
@@ -38,14 +40,17 @@ function devRoute(): Route | undefined {
   try { return JSON.parse(decodeURIComponent(location.hash.slice(1))) as Route; } catch { return undefined; }
 }
 
+const EMPTY_WORDS: WordsSnapshot = { syncedAt: "", deck: "", words: [] };
+
 // Экраны, которым нужна ширина под поля.
 const WIDE = new Set<Route["name"]>(["lesson"]);
 
 export function App() {
-  const [progress, setProgressState] = useState<Progress>(EMPTY_PROGRESS);
-  const [settings, setSettingsState] = useState<Settings>(DEFAULT_SETTINGS);
-  const [anki, setAnkiState] = useState<AnkiCache>(EMPTY_ANKI);
-  const [highlights, setHighlightsState] = useState<HighlightsFile>({ items: [] });
+  const [events, setEventsState] = useState<JournalEvent[]>([]);
+  const [localSettings, setSettingsState] = useState<Settings>(DEFAULT_SETTINGS);
+  const [words, setWordsState] = useState<WordsSnapshot>(EMPTY_WORDS);
+  const [syncCfg, setSyncCfgState] = useState<SyncConfig>({ device: "" });
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({ state: "idle" });
   const [toastText, setToastText] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const nav = useHistory(devRoute() ?? { name: "home" });
@@ -57,21 +62,59 @@ export function App() {
   const [help, setHelp] = useState(false);
   const setLeaveGuard = useCallback((m: string | null) => { guard.current = m; }, []);
 
+  // журнал и настройки синхронизации читаются в обработчиках — через ref, чтобы не брать устаревшие
+  const eventsRef = useRef<JournalEvent[]>([]);
+  const syncRef = useRef<SyncConfig>(syncCfg);
+  const wordsRef = useRef<WordsSnapshot>(words);
+  wordsRef.current = words;
+
+  const derived = useMemo(() => derive(events), [events]);
+  const progress = useMemo(() => withReminderHint(derived.progress), [derived.progress]);
+  const settings = useMemo<Settings>(() => ({ ...localSettings, ...derived.shared }), [localSettings, derived.shared]);
+  const anki = useMemo<AnkiCache>(() => ({ ...words, queue: derived.queue }), [words, derived.queue]);
+  const highlights = useMemo<HighlightsFile>(() => ({ items: derived.highlights }), [derived.highlights]);
+
+  const fail = (what: string) => (e: unknown) => setError(`${what} не сохранён: ${e}`);
+
+  const setEvents = (next: JournalEvent[]) => {
+    eventsRef.current = next;
+    setEventsState(next);
+    saveJournal({ events: next }).catch(fail("Журнал"));
+  };
+
   useEffect(() => {
-    Promise.all([loadProgress(), loadSettings(), loadAnki(), loadHighlights()])
-      .then(([p, s, a, h]) => {
-        setProgressState(p);
-        setSettingsState(s);
-        setAnkiState(a);
-        setHighlightsState(h);
-        if (!s.onboarded && !devRoute()) nav.go({ name: "onboarding" });
-        // автозапуск включается по настройке при первом запуске и не расходится с системой
-        syncAutostart(s.autostart).catch(() => {});
-      })
+    (async () => {
+      const [p, s, a, h, j, c] = await Promise.all([loadProgress(), loadSettings(), loadAnki(), loadHighlights(), loadJournal(), loadSyncConfig()]);
+      const cfg: SyncConfig = c ?? { device: newDeviceId() };
+      if (!c) await saveSyncConfig(cfg);
+      // первый запуск с журналом: всё накопленное раньше становится стартовым снимком
+      let ev = j?.events;
+      if (!ev) {
+        ev = seedEvents(cfg.device, new Date().toISOString(), p, h.items, a.queue);
+        await saveJournal({ events: ev });
+      }
+      eventsRef.current = ev;
+      syncRef.current = cfg;
+      setEventsState(ev);
+      setSettingsState(s);
+      setWordsState({ syncedAt: a.syncedAt, deck: a.deck, words: a.words });
+      setSyncCfgState(cfg);
+      if (!s.onboarded && !devRoute()) nav.go({ name: "onboarding" });
+      // автозапуск включается по настройке при первом запуске и не расходится с системой
+      syncAutostart(s.autostart).catch(() => {});
+    })()
       .catch((e) => setError(`Не удалось прочитать данные: ${e}`))
       .finally(() => setReady(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // производные файлы: progress.json читает фоновое напоминание, highlights.json — копия
+  useEffect(() => {
+    if (!ready) return;
+    saveProgress(progress).catch(fail("Прогресс"));
+    saveHighlights(highlights).catch(fail("Заметки"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, progress, highlights]);
 
   useEffect(installSelectionPaint, []);
   useEffect(() => { if (inTauri) document.documentElement.classList.add("in-tauri"); }, []);
@@ -87,45 +130,129 @@ export function App() {
     else run();
   };
 
-  const fail = (what: string) => (e: unknown) => setError(`${what} не сохранён: ${e}`);
-
   const toast = (message: string) => {
     clearTimeout(toastTimer.current);
     setToastText(message);
     toastTimer.current = setTimeout(() => setToastText(null), 3200);
   };
 
+  // --- синхронизация ---
+  const syncTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const syncing = useRef(false);
+  const again = useRef(false);
+
+  const setSyncConfig = (c: SyncConfig) => {
+    syncRef.current = c;
+    setSyncCfgState(c);
+    saveSyncConfig(c).catch(fail("Синхронизация"));
+  };
+
+  const record = (body: EventBody): JournalEvent => {
+    const cur = eventsRef.current;
+    const e = { ...body, id: nextId(cur, syncRef.current.device), at: new Date().toISOString() } as JournalEvent;
+    setEvents(mergeEvents(cur, [e]));
+    scheduleSync(4000);
+    return e;
+  };
+
+  // очередь Anki уходит с Mac; ушедшее отмечается в журнале и доходит до телефона
+  const flushAnki = async (): Promise<number> => {
+    if (!inTauri) return 0;
+    const queue = derive(eventsRef.current).queue;
+    if (!queue.length) return 0;
+    const ids = await flushQueue(settings.ankiDeck, queue).catch(() => [] as string[]);
+    if (ids.length) record({ t: "ankiSent", ids });
+    return ids.length;
+  };
+
+  const runSync = async (manual = false) => {
+    const cfg = syncRef.current;
+    if (!cfg.token) return;
+    if (syncing.current) { again.current = true; return; }
+    syncing.current = true;
+    setSyncStatus({ state: "syncing" });
+    try {
+      const w = wordsRef.current;
+      const r = await sync(cfg, { events: eventsRef.current, words: w.syncedAt ? w : undefined, ownsWords: inTauri });
+      // события, записанные во время синхронизации, не теряются
+      const merged = mergeEvents(eventsRef.current, r.events);
+      if (merged.length !== eventsRef.current.length) setEvents(merged);
+      if (r.words) { setWordsState(r.words); saveAnki({ ...r.words, queue: [] }).catch(fail("Словарь")); }
+      const at = new Date().toISOString();
+      setSyncConfig({ ...syncRef.current, gistId: r.gistId, lastSync: at });
+      setSyncStatus({ state: "ok", at });
+      await flushAnki();
+    } catch (e) {
+      const offline = e instanceof SyncError && e.offline;
+      setSyncStatus({ state: offline ? "offline" : "error", message: e instanceof Error ? e.message : String(e) });
+      if (manual && !offline) toast(`Синхронизация не удалась: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      syncing.current = false;
+      if (again.current) { again.current = false; scheduleSync(1000); }
+    }
+  };
+
+  const scheduleSync = (ms: number) => {
+    if (!syncRef.current.token) return;
+    clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => { runSync().catch(() => {}); }, ms);
+  };
+
+  // при запуске, при возврате в приложение и раз в 10 минут, пока оно открыто
+  useEffect(() => {
+    if (!ready) return;
+    scheduleSync(300);
+    const onVisible = () => { if (document.visibilityState === "visible") scheduleSync(300); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    window.addEventListener("online", onVisible);
+    const timer = setInterval(() => { if (document.visibilityState === "visible") scheduleSync(0); }, 10 * 60_000);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+      window.removeEventListener("online", onVisible);
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, syncCfg.token]);
+
   // Отправка в Anki: дубликат считается доставленным, недоступный Anki — очередь.
-  const send = async (item: AnkiQueueItem): Promise<"sent" | "queued"> => {
+  const send = async (item: Omit<AnkiQueueItem, "id">): Promise<"sent" | "queued"> => {
     try {
       await addToAnki(item.deck ?? settings.ankiDeck, item);
       return "sent";
     } catch (e) {
       if (String(e).includes("duplicate")) return "sent";
-      setAnkiState((a) => { const next = { ...a, queue: [...a.queue, item] }; saveAnki(next).catch(fail("Кэш Anki")); return next; });
+      record({ t: "ankiQueue", item });
       return "queued";
     }
   };
+  const queuedNote = inTauri ? "Anki закрыт — добавится, когда он будет запущен" : "Добавится в Anki на Mac после синхронизации";
 
-  const markSent = (ids: string[], at: string) => setHighlightsState((h) => {
-    const next = { items: h.items.map((x) => (ids.includes(x.id) ? { ...x, ankiAt: at } : x)) };
-    saveHighlights(next).catch(fail("Заметки"));
-    return next;
-  });
   const stateRef = useRef<AppState>(null!);
   const state: AppState = {
-    progress, settings, anki,
-    setProgress: (raw: Progress) => { const p = withReminderHint(raw); setProgressState(p); saveProgress(p).catch(fail("Прогресс")); },
-    setSettings: (s: Settings) => { setSettingsState(s); saveSettings(s).catch(fail("Настройки")); },
-    setAnki: (a: AnkiCache) => { setAnkiState(a); saveAnki(a).catch(fail("Кэш Anki")); },
-    highlights,
-    setHighlights: (h: HighlightsFile) => { setHighlightsState(h); saveHighlights(h).catch(fail("Заметки")); },
+    progress, settings, anki, highlights,
+    record,
+    setSettings: (s: Settings) => {
+      // общие настройки уходят в журнал, остальные — только на этом устройстве
+      for (const k of SHARED_SETTINGS) if (s[k] !== settings[k]) record({ t: "setting", key: k, value: s[k] });
+      setSettingsState(s);
+      saveSettings(s).catch(fail("Настройки"));
+    },
+    setWords: (w: WordsSnapshot) => {
+      setWordsState(w);
+      saveAnki({ ...w, queue: [] }).catch(fail("Словарь"));
+      scheduleSync(1000);
+    },
+    flushAnki,
+    queueWord: (front, back) => send({ front, back, source: "lesson", addedAt: new Date().toISOString() }),
+    sync: { config: syncCfg, status: syncStatus, setConfig: (c) => { setSyncConfig(c); if (c.token) scheduleSync(0); }, run: () => runSync(true) },
     sendNoteToAnki: async (h) => {
       const lesson = getLesson(h.lessonId);
       const now = new Date().toISOString();
       const r = await send({ front: h.text, back: lesson ? `Урок «${lesson.title}» — ${lesson.subtitle}` : "Hoard", source: "note", addedAt: now, deck: NOTES_DECK });
-      markSent([h.id], now);
-      toast(r === "sent" ? `Отправлено в Anki, колода ${NOTES_DECK}` : "Anki закрыт — заметка в очереди и добавится позже");
+      record({ t: "notesInAnki", ids: [h.id] });
+      toast(r === "sent" ? `Отправлено в Anki, колода ${NOTES_DECK}` : `Заметка в очереди. ${queuedNote}`);
     },
     sendStoriesToAnki: async (lessons) => {
       const now = new Date().toISOString();
@@ -135,12 +262,8 @@ export function App() {
         const r = await send({ front: l.story.question, back: `${l.story.takeaway ?? l.story.title}\n\n«${l.story.title}», урок «${l.title}»`, source: "story", addedAt: now, deck: STORIES_DECK });
         if (r === "sent") sent++; else queued++;
       }
-      setProgressState((p) => {
-        const next = withReminderHint({ ...p, storiesInAnki: [...new Set([...(p.storiesInAnki ?? []), ...lessons.map((l) => l.id)])] });
-        saveProgress(next).catch(fail("Прогресс"));
-        return next;
-      });
-      toast(queued ? `Отправлено: ${sent}. Anki закрыт — ещё ${queued} в очереди` : `Отправлено в Anki: ${sent}, колода ${STORIES_DECK}`);
+      record({ t: "storiesInAnki", ids: lessons.map((l) => l.id) });
+      toast(queued ? `Отправлено: ${sent}, в очереди: ${queued}. ${queuedNote}` : `Отправлено в Anki: ${sent}, колода ${STORIES_DECK}`);
     },
     toast,
     go: (r: Route) => guarded(() => nav.go(r))(),

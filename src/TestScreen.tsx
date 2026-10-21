@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { BLOCKS } from "../shared/lessons";
-import { Placement, blockTest, monthlyTest, recordTest, trapsTest, type Answered, type Question } from "../shared/tests";
+import { Placement, applyTest, blockTest, monthlyTest, testInput, trapsTest, type Answered, type Question } from "../shared/tests";
 import { BLOCK_PASS_RATIO, type TestResult } from "../shared/types";
 import { Quiz } from "./Quiz";
 import { useApp, type Route } from "./state";
@@ -8,7 +8,7 @@ import { useApp, type Route } from "./state";
 const TITLES = { placement: "Входной тест", monthly: "Проверка уровня", block: "Контрольная", traps: "Ловушки" };
 
 export function TestScreen({ route }: { route: Extract<Route, { name: "test" }> }) {
-  const { progress, setProgress, go } = useApp();
+  const { progress, record, go } = useApp();
   const block = route.kind === "block" || route.kind === "traps" ? BLOCKS.find((b) => b.id === route.blockId) : undefined;
   const [started, setStarted] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
@@ -33,8 +33,9 @@ export function TestScreen({ route }: { route: Extract<Route, { name: "test" }> 
 
   const finish = (answers: { correct: boolean; given: string }[]) => {
     const all: Answered[] = placement ? placement.answers : answers.map((a, i) => ({ ...asked[i]!, ...a }));
-    const p = recordTest(progress, route.kind, all, block?.id);
-    setProgress(p);
+    const input = testInput(route.kind, all, block?.id);
+    const e = record({ t: "test", ...input });
+    const p = applyTest(progress, input, e.at);
     setResult(p.tests[p.tests.length - 1]!);
   };
 

@@ -156,7 +156,8 @@ export type AnkiWord = { front: string; back: string; lapses: number; ivl: numbe
 
 // Слово, которое ждёт добавления через AnkiConnect, пока Anki закрыт.
 // deck — своя колода (заметки, истории); без неё — колода из настроек.
-export type AnkiQueueItem = { front: string; back: string; source: "lesson" | "ngsl" | "note" | "story"; addedAt: string; deck?: string };
+// id — id события очереди в журнале (journal.ts).
+export type AnkiQueueItem = { id?: string; front: string; back: string; source: "lesson" | "ngsl" | "note" | "story"; addedAt: string; deck?: string };
 
 export type AnkiCache = { syncedAt: string; deck: string; words: AnkiWord[]; queue: AnkiQueueItem[] };
 

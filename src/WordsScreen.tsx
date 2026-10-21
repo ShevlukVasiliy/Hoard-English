@@ -4,10 +4,11 @@ import { getLesson } from "../shared/lessons";
 import { suggestions } from "../shared/suggest";
 import { Quiz, type QuizAnswer } from "./Quiz";
 import { useApp } from "./state";
-import { addToAnki, flushQueue, syncAnki } from "./system";
+import { inTauri } from "./storage";
+import { syncAnki } from "./system";
 
 export function WordsScreen() {
-  const { anki, setAnki, settings, progress, setProgress, go } = useApp();
+  const { anki, setWords, flushAnki, queueWord, settings, progress, record, go } = useApp();
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [practice, setPractice] = useState<DeckTask[] | null>(null);
@@ -22,13 +23,9 @@ export function WordsScreen() {
     setBusy(true);
     setStatus(null);
     try {
-      let next = await syncAnki(settings, anki);
-      if (next.queue.length) {
-        const r = await flushQueue(settings.ankiDeck, next);
-        next = r.cache;
-        if (r.sent) setStatus(`Добавлено из очереди: ${r.sent}`);
-      }
-      setAnki(next);
+      setWords(await syncAnki(settings));
+      const sent = await flushAnki();
+      if (sent) setStatus(`Добавлено из очереди: ${sent}`);
     } catch (e) {
       setStatus(`Не удалось прочитать Anki: ${e}`);
     } finally {
@@ -39,18 +36,15 @@ export function WordsScreen() {
   // при открытии экрана пробуем отправить очередь, если Anki уже запущен
   useEffect(() => {
     if (!anki.queue.length) return;
-    flushQueue(settings.ankiDeck, anki).then((r) => { if (r.sent) { setAnki(r.cache); setStatus(`Добавлено из очереди: ${r.sent}`); } }, () => {});
+    flushAnki().then((sent) => { if (sent) setStatus(`Добавлено из очереди: ${sent}`); }, () => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const add = async (front: string, back: string) => {
-    try {
-      await addToAnki(settings.ankiDeck, { front, back });
-      setStatus(`«${front}» добавлено в Anki`);
-    } catch (e) {
-      setAnki({ ...anki, queue: [...anki.queue, { front, back, source: "lesson", addedAt: new Date().toISOString() }] });
-      setStatus(`Anki недоступен (${e}). «${front}» в очереди, добавится позже.`);
-    }
+    const r = await queueWord(front, back);
+    setStatus(r === "sent" ? `«${front}» добавлено в Anki`
+      : inTauri ? `Anki закрыт. «${front}» в очереди, добавится, когда он будет запущен.`
+      : `«${front}» в очереди — добавится в Anki на Mac после синхронизации.`);
   };
 
   if (practice) {
@@ -70,7 +64,7 @@ export function WordsScreen() {
         <Quiz
           total={practice.length}
           next={(i) => practice[i] && { key: practice[i].ex.id, ex: practice[i].ex }}
-          onFinish={(a) => { setResult(a); setProgress({ ...progress, activity: [...progress.activity, new Date().toISOString()] }); }}
+          onFinish={(a) => { setResult(a); record({ t: "activity" }); }}
         />
       </article>
     );
@@ -83,10 +77,10 @@ export function WordsScreen() {
         <p className="muted">
           {anki.syncedAt
             ? `Колода «${anki.deck}»: ${anki.words.length} карточек · обновлено ${new Date(anki.syncedAt).toLocaleString("ru")}`
-            : "Колода ещё не прочитана. Anki открывается только на чтение."}
+            : inTauri ? "Колода ещё не прочитана. Anki открывается только на чтение." : "Колода приходит с Mac при синхронизации."}
         </p>
         <div className="row">
-          <button disabled={busy} onClick={sync}>{busy ? "Читаю…" : "Обновить из Anki"}</button>
+          {inTauri && <button disabled={busy} onClick={sync}>{busy ? "Читаю…" : "Обновить из Anki"}</button>}
           {anki.words.length > 0 && <button className="ghost" onClick={() => setPractice(deckPractice(anki.words))}>Задания из моих карточек</button>}
         </div>
         {status && <p className="muted">{status}</p>}
@@ -130,7 +124,7 @@ export function WordsScreen() {
             </li>
           ))}
         </ul>
-        {anki.queue.length > 0 && <p className="muted small">В очереди: {anki.queue.length}. Добавятся, когда Anki будет запущен.</p>}
+        {anki.queue.length > 0 && <p className="muted small">В очереди: {anki.queue.length}. {inTauri ? "Добавятся, когда Anki будет запущен." : "Добавятся в Anki на Mac после синхронизации."}</p>}
       </section>
     </>
   );

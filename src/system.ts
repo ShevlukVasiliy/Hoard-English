@@ -1,7 +1,8 @@
 import { inTauri } from "./storage";
 import { invoke } from "@tauri-apps/api/core";
 import { cleanWords } from "../shared/anki";
-import type { AnkiCache, AnkiQueueItem, AnkiWord, Settings } from "../shared/types";
+import type { WordsSnapshot } from "../shared/sync";
+import type { AnkiQueueItem, AnkiWord, Settings } from "../shared/types";
 
 // Системные функции Tauri; в браузере — ничего не делают.
 export async function setAutostart(on: boolean) {
@@ -30,11 +31,11 @@ async function collectionPath(s: Settings): Promise<string> {
   return profiles[0]!.path;
 }
 
-export async function syncAnki(s: Settings, prev: AnkiCache): Promise<AnkiCache> {
-  if (!inTauri) throw new Error("чтение Anki доступно только в приложении");
+export async function syncAnki(s: Settings): Promise<WordsSnapshot> {
+  if (!inTauri) throw new Error("чтение Anki доступно только в приложении на Mac");
   const path = await collectionPath(s);
   const raw = await invoke<AnkiWord[]>("anki_words", { path, deck: s.ankiDeck });
-  return { syncedAt: new Date().toISOString(), deck: s.ankiDeck, words: cleanWords(raw), queue: prev.queue };
+  return { syncedAt: new Date().toISOString(), deck: s.ankiDeck, words: cleanWords(raw) };
 }
 
 export async function addToAnki(deck: string, item: Pick<AnkiQueueItem, "front" | "back">): Promise<void> {
@@ -42,19 +43,18 @@ export async function addToAnki(deck: string, item: Pick<AnkiQueueItem, "front" 
   await invoke("anki_add_note", { deck, front: item.front, back: item.back });
 }
 
-// Отправляет очередь; то, что не ушло, остаётся в очереди.
-export async function flushQueue(deck: string, cache: AnkiCache): Promise<{ cache: AnkiCache; sent: number }> {
-  const left: AnkiQueueItem[] = [];
-  let sent = 0;
-  for (const item of cache.queue) {
+// Отправляет очередь; возвращает id ушедших. То, что не ушло, остаётся в очереди.
+export async function flushQueue(deck: string, queue: AnkiQueueItem[]): Promise<string[]> {
+  const sent: string[] = [];
+  for (const item of queue) {
     try {
       await addToAnki(item.deck ?? deck, item);
-      sent++;
+      sent.push(item.id!);
     } catch (e) {
       // дубликат уже в колоде — считаем доставленным
-      if (String(e).includes("duplicate")) sent++;
-      else left.push(item);
+      if (String(e).includes("duplicate")) sent.push(item.id!);
+      else if (String(e).includes("AnkiConnect")) break;
     }
   }
-  return { cache: { ...cache, queue: left }, sent };
+  return sent;
 }

@@ -4,9 +4,12 @@ import type { Depth } from "../shared/types";
 import { Markup } from "./Markup";
 import { ReminderFields } from "./SettingsFields";
 import { useApp } from "./state";
+import { inTauri } from "./storage";
 import { syncAnki } from "./system";
+import { SyncSection } from "./SyncSection";
 
-const STEPS = ["Как читать", "Anki", "Напоминание", "Уровень"];
+// на телефоне нет Anki и напоминаний — вместо них подключение к Mac
+const STEPS = inTauri ? ["Как читать", "Anki", "Напоминание", "Уровень"] : ["Как читать", "Синхронизация", "Уровень"];
 // урок-образец для выбора подачи
 const SAMPLE = "past-simple-basics";
 
@@ -33,7 +36,7 @@ function Preview({ which }: { which: "theoryDepth" | "storyDepth" }) {
 }
 
 export function OnboardingScreen() {
-  const { settings, setSettings, anki, setAnki, progress, go } = useApp();
+  const { settings, setSettings, anki, setWords, progress, go } = useApp();
   const [step, setStep] = useState(0);
   const [ankiNote, setAnkiNote] = useState<string | null>(anki.words.length ? `Колода «${anki.deck}»: ${anki.words.length} карточек.` : null);
   const [busy, setBusy] = useState(false);
@@ -46,8 +49,8 @@ export function OnboardingScreen() {
   const readAnki = async () => {
     setBusy(true);
     try {
-      const next = await syncAnki(settings, anki);
-      setAnki(next);
+      const next = await syncAnki(settings);
+      setWords(next);
       setAnkiNote(`Колода «${next.deck}»: ${next.words.length} карточек. Из них будут задания и примеры.`);
     } catch (e) {
       setAnkiNote(`Anki не найден (${e}). Можно подключить позже в настройках.`);
@@ -77,7 +80,7 @@ export function OnboardingScreen() {
         </>
       )}
 
-      {step === 1 && (
+      {STEPS[step] === "Anki" && (
         <>
           <h1>Колода Anki</h1>
           <p>Hoard читает колоду «{settings.ankiDeck}» только на чтение: находит в твоих фразах грамматику уроков и делает из них задания. Новые слова, заметки и истории добавляются через AnkiConnect.</p>
@@ -88,7 +91,7 @@ export function OnboardingScreen() {
         </>
       )}
 
-      {step === 2 && (
+      {STEPS[step] === "Напоминание" && (
         <>
           <h1>Напоминание</h1>
           <p>Короткое уведомление в выбранные дни: следующий урок или ошибки на повтор. Клик открывает Hoard.</p>
@@ -96,7 +99,15 @@ export function OnboardingScreen() {
         </>
       )}
 
-      {step === 3 && (
+      {STEPS[step] === "Синхронизация" && (
+        <>
+          <h1>Синхронизация с Mac</h1>
+          <p>Если Hoard уже стоит на Mac, откройте там «Настройки → Синхронизация», нажмите «Код для iPhone» и вставьте код здесь. Прогресс, заметки и слова будут общими.</p>
+          <SyncSection />
+        </>
+      )}
+
+      {STEPS[step] === "Уровень" && (
         <>
           <h1>Уровень</h1>
           {progress.level ? (

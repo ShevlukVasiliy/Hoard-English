@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BLOCKS } from "../shared/lessons";
-import { blitzBest, blitzSet, BLITZ_MS, BLITZ_SIZE, recordTest, type Answered } from "../shared/tests";
+import { applyTest, blitzBest, blitzSet, BLITZ_MS, BLITZ_SIZE, testInput, type Answered } from "../shared/tests";
 import type { TestResult } from "../shared/types";
 import { useApp } from "./state";
 
 // Блиц: только выбор, ответ клавишами 1–4 или кликом, без экрана «верно / неверно».
 export function BlitzScreen({ blockId }: { blockId?: string }) {
-  const { progress, setProgress, go, setLeaveGuard } = useApp();
+  const { progress, record: log, go, setLeaveGuard } = useApp();
   const block = blockId ? BLOCKS.find((b) => b.id === blockId) : undefined;
   const [round, setRound] = useState(0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -25,11 +25,11 @@ export function BlitzScreen({ blockId }: { blockId?: string }) {
 
   const finish = (all: Answered[], at: number) => {
     const ms = Math.min(BLITZ_MS, at - (startedAt ?? at));
-    let p = recordTest(progress, "blitz", all, blockId, new Date().toISOString(), ms);
     // результат — из всех вопросов блица, а не только отвеченных
-    const r = { ...p.tests[p.tests.length - 1]!, total: BLITZ_SIZE };
-    p = { ...p, tests: [...p.tests.slice(0, -1), r] };
-    setProgress(p);
+    const input = testInput("blitz", all, blockId, ms, BLITZ_SIZE);
+    const e = log({ t: "test", ...input });
+    const p = applyTest(progress, input, e.at);
+    const r = p.tests[p.tests.length - 1]!;
     const best = prevBest.current;
     const record = !!all.length && (!best || r.correct > best.correct || (r.correct === best.correct && ms < (best.ms ?? Infinity)));
     setResult({ r, record, mistakes: all.filter((a) => !a.correct) });
